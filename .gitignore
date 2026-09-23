@@ -4,3 +4,4 @@ generated
 .env
 /generated/prisma
 .DS_Store
+/src/generated/prisma

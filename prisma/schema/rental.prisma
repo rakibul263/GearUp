@@ -1,0 +1,42 @@
+model RentalOrder {
+  id         String @id @default(uuid())
+  customerId String
+
+  startTime DateTime
+  endTime   DateTime
+
+  subtotal    Decimal @db.Decimal(10, 2)
+  totalAmount Decimal @db.Decimal(10, 2)
+
+  status RentalOrderStatus @default(PLACED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer    User              @relation(fields: [customerId], references: [id])
+  rentalItems RentalOrderItem[]
+  payments    Payment[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([startTime, endTime])
+  @@map("rental_orders")
+}
+
+model RentalOrderItem {
+  id            String @id @default(uuid())
+  rentalOrderId String
+  gearItemId    String
+
+  quantity     Int     @default(1)
+  pricePerDay  Decimal @db.Decimal(10, 2)
+  numberOfDays Int     @default(1)
+  subTotal     Decimal @db.Decimal(10, 2)
+
+  rentalOrder RentalOrder @relation(fields: [rentalOrderId], references: [id])
+  gearItem    Gear        @relation(fields: [gearItemId], references: [id])
+
+  @@index([rentalOrderId])
+  @@index([gearItemId])
+  @@map("rental_order_items")
+}
