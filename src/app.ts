@@ -3,6 +3,7 @@ import cors from "cors";
 import express, { Application } from "express";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import { notFoundMiddleware } from "./middlewares/notFound.middleware";
+import apiRoutes from "./routes";
 
 
 const app: Application = express();
@@ -22,6 +23,8 @@ app.get("/health", (req, res) => {
     res.status(500).json({ status: "error", message: "API is not healthy" });
   }
 });
+
+app.use("/api", apiRoutes)
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
