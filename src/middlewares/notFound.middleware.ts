@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
+import { AppError } from "./AppError";
 
-export const notFoundMiddleware = (req: Request, res: Response) => {
-    res.status(404).json({
-        status: "fail",
-        message: `Can't find ${req.originalUrl} on this server!`,
-    });
-}
+export const notFoundMiddleware = (req: Request, _res: Response) => {
+  throw new AppError(`Route not found: ${req.method} ${req.originalUrl}`, 404);
+};

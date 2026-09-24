@@ -1,43 +1,87 @@
 import prisma from "../../config/database";
 import { AppError } from "../../middlewares/AppError";
-import { hashPassword } from "../../utils/password";
-import { RegisterInput } from "./auth.validation";
+import { hashPassword, comparePassword } from "../../utils/password";
+import { generateAccessToken } from "../../utils/jwt";
+import type { LoginInput, RegisterInput } from "./auth.validation";
 
-const register = async(data: RegisterInput) => {
-    const existingUser = await prisma.user.findUnique({
-        where: {
-            email: data.email
-        }
-    })
+const register = async (data: RegisterInput) => {
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email: data.email,
+    },
+  });
 
-    if(existingUser) {
-        throw new AppError("User already exists with this email", 409)
-    }
+  if (existingUser) {
+    throw new AppError("User already exists with this email", 409);
+  }
 
-    const passwordHash = await hashPassword(data.password);
+  const passwordHash = await hashPassword(data.password);
 
-    const user = await prisma.user.create({
-        data: {
-            name: data.name,
-            email: data.email,
-            passwordHash,
-            phone: data.phone,
-            role: data.role
-        },
+  const user = await prisma.user.create({
+    data: {
+      name: data.name,
+      email: data.email,
+      passwordHash,
+      phone: data.phone,
+      role: data.role,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      status: true,
+      createdAt: true,
+    },
+  });
 
-        select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            role: true,
-            status: true,
-            createdAt: true
-        }
-    })
-    return user
-}
+  return user;
+};
+
+const login = async (data: LoginInput) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      email: data.email,
+    },
+  });
+
+  if (!user) {
+    throw new AppError("Invalid email or password", 401);
+  }
+
+  if (user.status === "INACTIVE") {
+    throw new AppError("Your account is inactive. Please contact support.", 403);
+  }
+
+  const isPasswordValid = await comparePassword(
+    data.password,
+    user.passwordHash,
+  );
+
+  if (!isPasswordValid) {
+    throw new AppError("Invalid email or password", 401);
+  }
+
+  const accessToken = generateAccessToken({
+    userId: user.id,
+    role: user.role,
+  });
+
+  return {
+    accessToken,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+    },
+  };
+};
 
 export const authService = {
-    register
-}
+  register,
+  login,
+};
