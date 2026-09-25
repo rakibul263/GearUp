@@ -7,6 +7,7 @@ enum UserRole {
 enum UserStatus {
   ACTIVE
   INACTIVE
+  SUSPENDED
 }
 
 enum RentalOrderStatus {

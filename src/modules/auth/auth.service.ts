@@ -81,7 +81,36 @@ const login = async (data: LoginInput) => {
   };
 };
 
+const getMe = async(userId: string) => {
+    const user = await prisma.user.findUnique({
+        where: {
+            id: userId,
+        },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            role: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+        }
+    })
+
+    if (!user) {
+        throw new AppError("User not found", 404);
+    }
+
+    if(user.status === "SUSPENDED") {
+        throw new AppError("Your account has been suspended", 403)
+    }
+
+    return user;
+}
+
 export const authService = {
   register,
   login,
+  getMe
 };

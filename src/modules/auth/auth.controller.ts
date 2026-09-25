@@ -21,7 +21,18 @@ const login = async (req: Request, res: Response) => {
     })
 }
 
+const me = async (req: Request, res: Response) => {
+    const user = await authService.getMe(req.user!.userId);
+
+    res.status(200).json({
+        success: true,
+        message: "User fetched successfully.",
+        data: user,
+    })
+}
+
 export const authController = {
     register,
-    login
+    login,
+    me
 }
