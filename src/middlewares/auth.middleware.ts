@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 
 import { verifyAccessToken } from "../utils/jwt.js";
-import { AppError } from "./AppError";
+import { AppError } from "./AppError.js";
 
 export const authMiddleware: RequestHandler = (req, _res, next) => {
   const authorization = req.headers.authorization;

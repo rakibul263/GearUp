@@ -1,9 +1,9 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { Application } from "express";
-import { errorMiddleware } from "./middlewares/error.middleware";
-import { notFoundMiddleware } from "./middlewares/notFound.middleware";
-import apiRoutes from "./routes";
+import { errorMiddleware } from "./middlewares/error.middleware.js";
+import { notFoundMiddleware } from "./middlewares/notFound.middleware.js";
+import apiRoutes from "./routes/index.js";
 
 
 const app: Application = express();

@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
-import { UserRole } from "../../generated/prisma/enums";
-import { AppError } from "./AppError";
+import { UserRole } from "../../generated/prisma/enums.js";
+import { AppError } from "./AppError.js";
 
 export const requireRoles = (...allowedRoles: UserRole[]): RequestHandler => {
   return (req, _res, next) => {

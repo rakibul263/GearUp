@@ -1,8 +1,8 @@
-import prisma from "../../config/database";
-import { AppError } from "../../middlewares/AppError";
-import { hashPassword, comparePassword } from "../../utils/password";
-import { generateAccessToken } from "../../utils/jwt";
-import type { LoginInput, RegisterInput } from "./auth.validation";
+import prisma from "../../config/database.js";
+import { AppError } from "../../middlewares/AppError.js";
+import { hashPassword, comparePassword } from "../../utils/password.js";
+import { generateAccessToken } from "../../utils/jwt.js";
+import type { LoginInput, RegisterInput } from "./auth.validation.js";
 
 const register = async (data: RegisterInput) => {
   const existingUser = await prisma.user.findUnique({
