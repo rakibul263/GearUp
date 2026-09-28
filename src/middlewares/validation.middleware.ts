@@ -20,3 +20,26 @@ export const validate = (schema: ZodType): RequestHandler => {
     next();
   };
 };
+
+export const validateQuery = (schema: ZodType): RequestHandler => {
+  return (req, _res, next) => {
+    const result = schema.safeParse(req.query);
+
+    if (!result.success) {
+      const message = result.error.issues
+        .map((issue) => issue.message)
+        .join(", ");
+
+      throw new AppError(message, 400);
+    }
+
+    Object.defineProperty(req, "query", {
+      value: result.data,
+      writable: true,
+      configurable: true,
+      enumerable: true,
+    });
+
+    next();
+  };
+};
