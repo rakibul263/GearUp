@@ -1,13 +1,24 @@
 import prisma from "../../config/database.js";
-import { AppError } from "../../middlewares/AppError";
+import { env } from "../../config/env.js";
+import { stripe } from "../../config/stripe.js";
+import { AppError } from "../../middlewares/AppError.js";
 import type { CreatePaymentInput } from "./payment.validation.js";
 
 const createPayment = async (userId: string, data: CreatePaymentInput) => {
+  if (data.method !== "STRIPE") {
+    throw new AppError("Only Stripe payment is currently available", 400);
+  }
+
+  if (!stripe) {
+    throw new AppError("Stripe payment is not configured", 503);
+  }
+
   const rentalOrder = await prisma.rentalOrder.findFirst({
     where: {
       id: data.rentalOrderId,
       customerId: userId,
     },
+
     include: {
       payments: {
         where: {
@@ -15,9 +26,11 @@ const createPayment = async (userId: string, data: CreatePaymentInput) => {
             in: ["PENDING", "COMPLETED"],
           },
         },
+
         orderBy: {
           createdAt: "desc",
         },
+
         take: 1,
       },
     },
@@ -57,13 +70,61 @@ const createPayment = async (userId: string, data: CreatePaymentInput) => {
       userId,
       rentalOrderId: rentalOrder.id,
       amount: rentalOrder.totalAmount,
-      method: data.method,
-      provider: data.method,
+      method: "STRIPE",
+      provider: "STRIPE",
       status: "PENDING",
     },
   });
 
-  return payment;
+  try {
+    const amountInCents = Math.round(Number(rentalOrder.totalAmount) * 100);
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: "usd",
+
+      automatic_payment_methods: {
+        enabled: true,
+      },
+
+      metadata: {
+        paymentId: payment.id,
+        rentalOrderId: rentalOrder.id,
+        userId,
+      },
+
+      description: `GearUp rental ${rentalOrder.id}`,
+
+      receipt_email: undefined,
+    });
+
+    const updatedPayment = await prisma.payment.update({
+      where: {
+        id: payment.id,
+      },
+
+      data: {
+        transactionId: paymentIntent.id,
+      },
+    });
+
+    return {
+      payment: updatedPayment,
+      clientSecret: paymentIntent.client_secret,
+    };
+  } catch (error) {
+    await prisma.payment.update({
+      where: {
+        id: payment.id,
+      },
+
+      data: {
+        status: "FAILED",
+      },
+    });
+
+    throw error;
+  }
 };
 
 const getMyPayments = async (userId: string) => {
