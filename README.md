@@ -6,6 +6,7 @@
 [![Prisma](https://img.shields.io/badge/Prisma-v7.8-2D3748.svg?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-336791.svg?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-v9+-F69220.svg?style=for-the-badge&logo=pnpm)](https://pnpm.io/)
+[![DrawSQL ERD](https://img.shields.io/badge/ERD-DrawSQL-2563EB.svg?style=for-the-badge)](https://drawsql.app/teams/inert-argon/diagrams/gearup)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg?style=for-the-badge)](#license)
 
 **GearUp** is a peer-to-peer rental marketplace backend designed for renting outdoor, camping, sports, and adventure equipment. It connects equipment **Providers** with adventure-seeking **Customers**, providing real-time inventory management, concurrency-safe booking, flexible search and filtering, and role-based access control.
@@ -138,6 +139,10 @@ flowchart TD
 ---
 
 ## 🗃️ Database Schema & Models
+
+> 📊 **Interactive ERD Diagram**:  
+> Explore the full database schema, visual entity relationships, column types, and foreign key constraints on DrawSQL:  
+> 🔗 [**https://drawsql.app/teams/inert-argon/diagrams/gearup**](https://drawsql.app/teams/inert-argon/diagrams/gearup)
 
 ### Core Entities & Relationships:
 
