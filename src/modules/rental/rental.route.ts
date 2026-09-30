@@ -2,9 +2,9 @@ import { Router } from "express";
 
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRoles } from "../../middlewares/role.middleware.js";
+import { validate } from "../../middlewares/validation.middleware.js";
 import { rentalController } from "./rental.controller.js";
 import { createRentalSchema } from "./rental.validation.js";
-import { validate } from "../../middlewares/validation.middleware.js";
 
 const router: Router = Router();
 
@@ -17,5 +17,7 @@ router.get("/", rentalController.getMyRentals);
 router.get("/:id", rentalController.getRentalById);
 
 router.patch("/:id/cancel", rentalController.cancelRental);
+
+router.use(authMiddleware, requireRoles("CUSTOMER"));
 
 export default router;

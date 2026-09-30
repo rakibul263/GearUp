@@ -26,6 +26,7 @@
   - [Categories (`/api/categories`)](#3-categories-apicategories)
   - [Gear Inventory (`/api/gears`)](#4-gear-inventory-apigears)
   - [Rentals & Booking (`/api/rentals`)](#5-rentals--booking-apirentals)
+  - [Provider Rentals (`/api/provider/rentals`)](#6-provider-rental-management-apiproviderrentals)
 - [Getting Started (Setup with pnpm)](#-getting-started-setup-with-pnpm)
 - [Project Directory Structure](#-project-directory-structure)
 - [Available Scripts](#-available-scripts)
@@ -356,6 +357,25 @@ erDiagram
       }
     ]
   }
+}
+---
+
+### 6. Provider Rental Management (`/api/provider/rentals`)
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/provider/rentals` | `PROVIDER` | List all incoming orders for the provider's gear |
+| `PATCH` | `/api/provider/rentals/:id/status` | `PROVIDER` | Update order status along permitted transitions |
+
+#### Status Transition Rules:
+- `PLACED` ➔ `CONFIRMED`
+- `PAID` ➔ `PICKED_UP`
+- `PICKED_UP` ➔ `RETURNED`
+
+#### Update Rental Status Example (`PATCH /api/provider/rentals/:id/status`):
+```json
+{
+  "status": "CONFIRMED"
 }
 ```
 

@@ -2,7 +2,10 @@ import { Prisma } from "../../../generated/prisma/client.js";
 import prisma from "../../config/database.js";
 import { AppError } from "../../middlewares/AppError.js";
 import { getRentalDays } from "../../utils/date.js";
-import type { CreateRentalInput } from "./rental.validation.js";
+import type {
+  CreateRentalInput,
+  UpdateRentalStatusInput,
+} from "./rental.validation.js";
 
 const ACTIVE_RENTAL_STATUSES = [
   "PLACED",
@@ -339,9 +342,150 @@ const cancelRental = async (rentalId: string, customerId: string) => {
   return cancelledRental;
 };
 
+const getProviderRentals = async (providerId: string) => {
+  return prisma.rentalOrder.findMany({
+    where: {
+      rentalItems: {
+        some: {
+          gearItem: {
+            providerId,
+          },
+        },
+      },
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+
+    include: {
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+
+      rentalItems: {
+        where: {
+          gearItem: {
+            providerId,
+          },
+        },
+
+        include: {
+          gearItem: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+              pricePerDay: true,
+              providerId: true,
+            },
+          },
+        },
+      },
+
+      payments: {
+        select: {
+          id: true,
+          amount: true,
+          method: true,
+          provider: true,
+          status: true,
+          paidAt: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+};
+
+const updateProviderRentalStatus = async (
+  rentalId: string,
+  providerId: string,
+  data: UpdateRentalStatusInput,
+) => {
+  const rental = await prisma.rentalOrder.findFirst({
+    where: {
+      id: rentalId,
+
+      rentalItems: {
+        some: {
+          gearItem: {
+            providerId,
+          },
+        },
+      },
+    },
+  });
+
+  if (!rental) {
+    throw new AppError("Rental order not found", 404);
+  }
+
+  const allowedTransitions: Record<string, string[]> = {
+    PLACED: ["CONFIRMED"],
+    PAID: ["PICKED_UP"],
+    PICKED_UP: ["RETURNED"],
+  };
+
+  const nextStatuses = allowedTransitions[rental.status] ?? [];
+
+  if (!nextStatuses.includes(data.status)) {
+    throw new AppError(
+      `Cannot change rental status from ${rental.status} to ${data.status}`,
+      409,
+    );
+  }
+
+  const updatedRental = await prisma.rentalOrder.update({
+    where: {
+      id: rental.id,
+    },
+
+    data: {
+      status: data.status,
+    },
+
+    include: {
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+
+      rentalItems: {
+        include: {
+          gearItem: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+              pricePerDay: true,
+              providerId: true,
+            },
+          },
+        },
+      },
+
+      payments: true,
+    },
+  });
+
+  return updatedRental;
+};
+
 export const rentalService = {
   createRental,
   getCustomerRentals,
   getRentalById,
   cancelRental,
+  getProviderRentals,
+  updateProviderRentalStatus,
 };
