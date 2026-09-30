@@ -19,4 +19,9 @@ export const createRentalSchema = z.object({
     .min(1, "At least one gear item is required"),
 });
 
+export const updateRentalStatusSchema = z.object({
+  status: z.enum(["CONFIRMED", "PICKED_UP", "RETURNED"]),
+});
+
 export type CreateRentalInput = z.infer<typeof createRentalSchema>;
+export type UpdateRentalStatusInput = z.infer<typeof updateRentalStatusSchema>;

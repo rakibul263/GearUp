@@ -3,6 +3,16 @@ import { Request, Response } from "express";
 import { rentalService } from "./rental.service.js";
 import { AppError } from "../../middlewares/AppError.js";
 
+const getRentalParamId = (req: Request): string => {
+  const { id } = req.params;
+
+  if (typeof id !== "string" || id.length === 0) {
+    throw new AppError("Invalid rental order id", 400);
+  }
+
+  return id;
+};
+
 const createRental = async (req: Request, res: Response) => {
   if (!req.user) {
     throw new AppError("Authentication required", 401);
@@ -37,7 +47,7 @@ const getRentalById = async (req: Request, res: Response) => {
   }
 
   const rental = await rentalService.getRentalById(
-    req.params.id as string,
+    getRentalParamId(req),
     req.user.userId,
   );
 
@@ -48,8 +58,26 @@ const getRentalById = async (req: Request, res: Response) => {
   });
 };
 
+const cancelRental = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new AppError("Authentication required", 401);
+  }
+
+  const rental = await rentalService.cancelRental(
+    getRentalParamId(req),
+    req.user.userId,
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Rental order cancelled successfully",
+    data: rental,
+  });
+};
+
 export const rentalController = {
   createRental,
   getMyRentals,
   getRentalById,
+  cancelRental,
 };

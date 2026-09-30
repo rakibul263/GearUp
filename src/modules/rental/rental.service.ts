@@ -1,7 +1,8 @@
+import { Prisma } from "../../../generated/prisma/client.js";
 import prisma from "../../config/database.js";
 import { AppError } from "../../middlewares/AppError.js";
 import { getRentalDays } from "../../utils/date.js";
-import { CreateRentalInput } from "./rental.validation.js";
+import type { CreateRentalInput } from "./rental.validation.js";
 
 const ACTIVE_RENTAL_STATUSES = [
   "PLACED",
@@ -9,6 +10,8 @@ const ACTIVE_RENTAL_STATUSES = [
   "PAID",
   "PICKED_UP",
 ] as const;
+
+const MAX_TRANSACTION_RETRIES = 3;
 
 const createRental = async (customerId: string, data: CreateRentalInput) => {
   if (data.endDate <= data.startDate) {
@@ -38,140 +41,190 @@ const createRental = async (customerId: string, data: CreateRentalInput) => {
 
   const gearIds = requestedItems.map((item) => item.gearItemId);
 
-  const gears = await prisma.gear.findMany({
-    where: {
-      id: {
-        in: gearIds,
-      },
-    },
-  });
-
-  if (gears.length !== gearIds.length) {
-    throw new AppError("One or more gear items were not found", 404);
-  }
-
-  for (const requestedItem of requestedItems) {
-    const gear = gears.find((item) => item.id === requestedItem.gearItemId);
-
-    if (!gear) {
-      throw new AppError("Gear item not found", 404);
-    }
-
-    if (!gear.isAvailable) {
-      throw new AppError(`${gear.name} is currently unavailable`, 409);
-    }
-
-    if (requestedItem.quantity > gear.stock) {
-      throw new AppError(`Not enough stock available for ${gear.name}`, 409);
-    }
-  }
-
-  const overlappingOrders = await prisma.rentalOrder.findMany({
-    where: {
-      status: {
-        in: [...ACTIVE_RENTAL_STATUSES],
-      },
-
-      startTime: {
-        lt: data.endDate,
-      },
-
-      endTime: {
-        gt: data.startDate,
-      },
-
-      rentalItems: {
-        some: {
-          gearItemId: {
-            in: gearIds,
-          },
-        },
-      },
-    },
-
-    include: {
-      rentalItems: true,
-    },
-  });
-
-  for (const requestedItem of requestedItems) {
-    const gear = gears.find((item) => item.id === requestedItem.gearItemId);
-
-    if (!gear) {
-      continue;
-    }
-
-    const reservedQuantity = overlappingOrders.reduce((total, order) => {
-      const matchingItem = order.rentalItems.find(
-        (item) => item.gearItemId === requestedItem.gearItemId,
-      );
-
-      return total + (matchingItem?.quantity ?? 0);
-    }, 0);
-
-    const availableStock = gear.stock - reservedQuantity;
-
-    if (requestedItem.quantity > availableStock) {
-      throw new AppError(
-        `Only ${Math.max(0, availableStock)} unit(s) of ${gear.name} are available for the selected dates`,
-        409,
-      );
-    }
-  }
-
-  let subtotal = 0;
-
-  const orderItems = requestedItems.map((requestedItem) => {
-    const gear = gears.find((item) => item.id === requestedItem.gearItemId);
-
-    if (!gear) {
-      throw new AppError("Gear item not found", 404);
-    }
-
-    const itemSubtotal =
-      Number(gear.pricePerDay) * requestedItem.quantity * numberOfDays;
-
-    subtotal += itemSubtotal;
-
-    return {
-      gearItemId: gear.id,
-      quantity: requestedItem.quantity,
-      pricePerDay: gear.pricePerDay,
-      numberOfDays,
-      subTotal: itemSubtotal,
-    };
-  });
-
-  const order = await prisma.rentalOrder.create({
-    data: {
-      customerId,
-      startTime: data.startDate,
-      endTime: data.endDate,
-      subtotal,
-      totalAmount: subtotal,
-      status: "PLACED",
-
-      rentalItems: {
-        create: orderItems,
-      },
-    },
-
-    include: {
-      rentalItems: {
-        include: {
-          gearItem: {
-            select: {
-              id: true,
-              name: true,
-              pricePerDay: true,
+  for (let attempt = 1; attempt <= MAX_TRANSACTION_RETRIES; attempt++) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const gears = await tx.gear.findMany({
+            where: {
+              id: {
+                in: gearIds,
+              },
             },
-          },
-        },
-      },
-    },
-  });
+          });
 
-  return order;
+          if (gears.length !== gearIds.length) {
+            throw new AppError("One or more gear items were not found", 404);
+          }
+
+          const providerIds = new Set(gears.map((gear) => gear.providerId));
+
+          if (providerIds.size > 1) {
+            throw new AppError(
+              "A rental order can contain gear from only one provider",
+              400,
+            );
+          }
+
+          for (const requestedItem of requestedItems) {
+            const gear = gears.find(
+              (item) => item.id === requestedItem.gearItemId,
+            );
+
+            if (!gear) {
+              throw new AppError("Gear item not found", 404);
+            }
+
+            if (!gear.isAvailable) {
+              throw new AppError(`${gear.name} is currently unavailable`, 409);
+            }
+
+            if (requestedItem.quantity > gear.stock) {
+              throw new AppError(
+                `Not enough stock available for ${gear.name}`,
+                409,
+              );
+            }
+          }
+
+          const overlappingOrders = await tx.rentalOrder.findMany({
+            where: {
+              status: {
+                in: [...ACTIVE_RENTAL_STATUSES],
+              },
+
+              startTime: {
+                lt: data.endDate,
+              },
+
+              endTime: {
+                gt: data.startDate,
+              },
+
+              rentalItems: {
+                some: {
+                  gearItemId: {
+                    in: gearIds,
+                  },
+                },
+              },
+            },
+
+            include: {
+              rentalItems: true,
+            },
+          });
+
+          for (const requestedItem of requestedItems) {
+            const gear = gears.find(
+              (item) => item.id === requestedItem.gearItemId,
+            );
+
+            if (!gear) {
+              continue;
+            }
+
+            const reservedQuantity = overlappingOrders.reduce(
+              (total, order) => {
+                const matchingItem = order.rentalItems.find(
+                  (item) => item.gearItemId === requestedItem.gearItemId,
+                );
+
+                return total + (matchingItem?.quantity ?? 0);
+              },
+              0,
+            );
+
+            const availableStock = gear.stock - reservedQuantity;
+
+            if (requestedItem.quantity > availableStock) {
+              throw new AppError(
+                `Only ${Math.max(0, availableStock)} unit(s) of ${gear.name} are available for the selected dates`,
+                409,
+              );
+            }
+          }
+
+          let subtotal = 0;
+
+          const orderItems = requestedItems.map((requestedItem) => {
+            const gear = gears.find(
+              (item) => item.id === requestedItem.gearItemId,
+            );
+
+            if (!gear) {
+              throw new AppError("Gear item not found", 404);
+            }
+
+            const itemSubtotal =
+              Number(gear.pricePerDay) * requestedItem.quantity * numberOfDays;
+
+            subtotal += itemSubtotal;
+
+            return {
+              gearItemId: gear.id,
+              quantity: requestedItem.quantity,
+              pricePerDay: gear.pricePerDay,
+              numberOfDays,
+              subTotal: itemSubtotal,
+            };
+          });
+
+          const order = await tx.rentalOrder.create({
+            data: {
+              customerId,
+              startTime: data.startDate,
+              endTime: data.endDate,
+              subtotal,
+              totalAmount: subtotal,
+              status: "PLACED",
+
+              rentalItems: {
+                create: orderItems,
+              },
+            },
+
+            include: {
+              rentalItems: {
+                include: {
+                  gearItem: {
+                    select: {
+                      id: true,
+                      name: true,
+                      pricePerDay: true,
+                    },
+                  },
+                },
+              },
+            },
+          });
+
+          return order;
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+
+          maxWait: 5000,
+          timeout: 10000,
+        },
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2034" &&
+        attempt < MAX_TRANSACTION_RETRIES
+      ) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw new AppError(
+    "Unable to create rental order due to concurrent booking attempts. Please try again.",
+    409,
+  );
 };
 
 const getCustomerRentals = async (customerId: string) => {
@@ -245,8 +298,50 @@ const getRentalById = async (rentalId: string, customerId: string) => {
   return rental;
 };
 
+const cancelRental = async (rentalId: string, customerId: string) => {
+  const rental = await prisma.rentalOrder.findFirst({
+    where: {
+      id: rentalId,
+      customerId,
+    },
+  });
+
+  if (!rental) {
+    throw new AppError("Rental order not found", 404);
+  }
+
+  if (rental.status !== "PLACED") {
+    throw new AppError("Only placed rental orders can be cancelled", 409);
+  }
+
+  const cancelledRental = await prisma.rentalOrder.update({
+    where: {
+      id: rental.id,
+    },
+    data: {
+      status: "CANCELED",
+    },
+    include: {
+      rentalItems: {
+        include: {
+          gearItem: {
+            select: {
+              id: true,
+              name: true,
+              pricePerDay: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return cancelledRental;
+};
+
 export const rentalService = {
   createRental,
   getCustomerRentals,
   getRentalById,
+  cancelRental,
 };

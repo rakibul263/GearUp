@@ -2,6 +2,7 @@ import type { Prisma } from "../../../generated/prisma/client.js";
 import prisma from "../../config/database.js";
 import { AppError } from "../../middlewares/AppError.js";
 import { getPagination } from "../../utils/pagination.js";
+
 import type {
   CreateGearInput,
   GearListQuery,

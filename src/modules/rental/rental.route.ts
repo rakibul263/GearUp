@@ -16,4 +16,6 @@ router.get("/", rentalController.getMyRentals);
 
 router.get("/:id", rentalController.getRentalById);
 
+router.patch("/:id/cancel", rentalController.cancelRental);
+
 export default router;
