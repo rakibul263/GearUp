@@ -98,12 +98,7 @@ export const deleteGearAsAdmin = async (gearItemId: string) => {
         where: {
           rentalOrder: {
             status: {
-              in: [
-                "PLACED",
-                "CONFIRMED",
-                "PAID",
-                "PICKED_UP",
-              ],
+              in: ["PLACED", "CONFIRMED", "PAID", "PICKED_UP"],
             },
           },
         },
