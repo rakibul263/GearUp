@@ -13,6 +13,7 @@ model User {
   rentalOrders RentalOrder[]
   reviews      Review[]
   payments     Payment[]
+  refunds      PaymentRefund[]
 
   @@index([role])
   @@index([status])

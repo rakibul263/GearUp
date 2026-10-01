@@ -39,3 +39,11 @@ enum PaymentStatus {
   REFUNDED
   CANCELED
 }
+
+enum PaymentRefundStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+

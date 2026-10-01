@@ -16,15 +16,13 @@ model Payment {
   checkoutUrl    String?
   clientSecret   String?
 
-  refundId       String?         @unique
-  refundedAt     DateTime?
-
   paidAt         DateTime?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   user           User            @relation(fields: [userId], references: [id])
   rentalOrder    RentalOrder     @relation(fields: [rentalOrderId], references: [id])
+  refunds        PaymentRefund[]
 
   @@index([userId])
   @@index([rentalOrderId])
@@ -32,4 +30,32 @@ model Payment {
   @@index([provider])
   @@index([currency])
   @@map("payments")
+}
+
+model PaymentRefund {
+  id               String              @id @default(cuid())
+  paymentId        String
+  userId           String
+
+  amount           Decimal             @db.Decimal(10, 2)
+  currency         PaymentCurrency
+
+  reason           String?
+
+  status           PaymentRefundStatus @default(PENDING)
+
+  providerRefundId String?             @unique
+  idempotencyKey   String              @unique
+
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  refundedAt       DateTime?
+
+  payment          Payment             @relation(fields: [paymentId], references: [id])
+  user             User                @relation(fields: [userId], references: [id])
+
+  @@index([paymentId])
+  @@index([userId])
+  @@index([status])
+  @@map("payment_refunds")
 }

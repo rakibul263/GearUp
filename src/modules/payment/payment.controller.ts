@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { AppError } from "../../middlewares/AppError.js";
-import { refundPayment } from "./payment.refund.service.js";
+import { createRefund, refundPayment } from "./payment.refund.service.js";
 import { paymentService } from "./payment.service.js";
 import { handleStripeWebhook } from "./payment.webhook.js";
 
@@ -58,6 +58,33 @@ export const getPaymentById = async (req: Request, res: Response) => {
   });
 };
 
+export const handleCreateRefund = async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new AppError("Authentication required", 401);
+  }
+
+  const idempotencyKey = req.headers["idempotency-key"];
+
+  if (
+    typeof idempotencyKey !== "string" ||
+    !idempotencyKey.trim()
+  ) {
+    throw new AppError("Idempotency-Key header is required", 400);
+  }
+
+  const refund = await createRefund(
+    req.user.userId,
+    idempotencyKey,
+    req.body,
+  );
+
+  res.status(201).json({
+    success: true,
+    message: "Refund processed successfully",
+    data: refund,
+  });
+};
+
 export const handleRefundPayment = async (req: Request, res: Response) => {
   const userId = req.user!.userId;
   const { id } = req.params;
@@ -66,11 +93,16 @@ export const handleRefundPayment = async (req: Request, res: Response) => {
     throw new AppError("Invalid payment id", 400);
   }
 
-  const result = await refundPayment(userId, id, req.body);
+  const idempotencyKey = req.headers["idempotency-key"];
+  if (typeof idempotencyKey !== "string" || !idempotencyKey.trim()) {
+    throw new AppError("Idempotency-Key header is required", 400);
+  }
 
-  res.status(200).json({
+  const result = await refundPayment(userId, id, req.body, idempotencyKey);
+
+  res.status(201).json({
     success: true,
-    message: "Payment refunded successfully",
+    message: "Refund processed successfully",
     data: result,
   });
 };
@@ -91,6 +123,7 @@ export const paymentController = {
   createPayment: handleCreatePayment,
   getMyPayments,
   getPaymentById,
+  createRefund: handleCreateRefund,
   refundPayment: handleRefundPayment,
   stripeWebhook,
 };

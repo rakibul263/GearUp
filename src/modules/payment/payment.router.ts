@@ -5,6 +5,7 @@ import { requireRoles } from "../../middlewares/role.middleware.js";
 import { paymentController } from "./payment.controller.js";
 import {
   createPaymentSchema,
+  createRefundSchema,
   refundPaymentSchema,
 } from "./payment.validation.js";
 import { validate } from "../../middlewares/validation.middleware.js";
@@ -17,6 +18,12 @@ router.post(
   "/",
   validate(createPaymentSchema),
   paymentController.createPayment,
+);
+
+router.post(
+  "/refunds",
+  validate(createRefundSchema),
+  paymentController.createRefund,
 );
 
 router.get("/", paymentController.getMyPayments);
