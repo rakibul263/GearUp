@@ -19,14 +19,17 @@ enum RentalOrderStatus {
   CANCELED
 }
 
+enum PaymentCurrency {
+  BDT
+  USD
+}
+
 enum PaymentMethod {
   STRIPE
-  SSLCOMMERZ
 }
 
 enum PaymentProvider {
   STRIPE
-  SSLCOMMERZ
 }
 
 enum PaymentStatus {

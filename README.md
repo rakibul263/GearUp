@@ -165,7 +165,7 @@ erDiagram
 - **`Gear`**: Inventory items owned by a Provider, with pricing per day, stock count, specifications, and availability toggle.
 - **`RentalOrder`**: Booking orders with customer ID, rental period (`startTime`, `endTime`), totals, and status (`PLACED`, `CONFIRMED`, `PAID`, `PICKED_UP`, `RETURNED`, `CANCELED`).
 - **`RentalOrderItem`**: Line items inside a rental order referencing the gear item, quantity, daily rate, duration, and line subtotal.
-- **`Payment`**: Payment transaction record supporting Stripe & SSLCommerz.
+- **`Payment`**: Payment transaction record supporting Stripe
 - **`Review`**: Customer ratings and comments on gear.
 
 ---

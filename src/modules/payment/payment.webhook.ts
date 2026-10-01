@@ -25,7 +25,6 @@ export const handleStripeWebhook = async (
       const paymentIntent = event.data.object;
 
       const paymentId = paymentIntent.metadata.paymentId;
-
       const rentalOrderId = paymentIntent.metadata.rentalOrderId;
 
       if (!paymentId || !rentalOrderId) {
@@ -45,6 +44,16 @@ export const handleStripeWebhook = async (
 
         if (payment.status === "COMPLETED") {
           return;
+        }
+
+        const expectedAmount = Math.round(Number(payment.amount) * 100);
+
+        if (paymentIntent.amount !== expectedAmount) {
+          throw new Error("Stripe payment amount mismatch");
+        }
+
+        if (paymentIntent.currency.toUpperCase() !== payment.currency) {
+          throw new Error("Stripe payment currency mismatch");
         }
 
         await tx.payment.update({

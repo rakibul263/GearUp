@@ -1,16 +1,45 @@
 import prisma from "../../config/database.js";
-import { env } from "../../config/env.js";
-import { stripe } from "../../config/stripe.js";
 import { AppError } from "../../middlewares/AppError.js";
+import { getPaymentGateway } from "./payment.gateway.factory.js";
 import type { CreatePaymentInput } from "./payment.validation.js";
 
-const createPayment = async (userId: string, data: CreatePaymentInput) => {
-  if (data.method !== "STRIPE") {
-    throw new AppError("Only Stripe payment is currently available", 400);
-  }
+export const createPayment = async (
+  userId: string,
+  data: CreatePaymentInput,
+  idempotencyKey: string,
+) => {
+  const existingPayment = await prisma.payment.findUnique({
+    where: {
+      idempotencyKey,
+    },
+  });
 
-  if (!stripe) {
-    throw new AppError("Stripe payment is not configured", 503);
+  if (existingPayment) {
+    if (existingPayment.userId !== userId) {
+      throw new AppError("Invalid idempotency key", 409);
+    }
+
+    if (existingPayment.rentalOrderId !== data.rentalOrderId) {
+      throw new AppError(
+        "Idempotency key was already used for another rental order",
+        409,
+      );
+    }
+
+    if (existingPayment.method !== data.method) {
+      throw new AppError(
+        "Idempotency key was already used with another payment method",
+        409,
+      );
+    }
+
+    return {
+      payment: existingPayment,
+      gateway: existingPayment.method,
+      clientSecret: existingPayment.clientSecret ?? undefined,
+      checkoutUrl: existingPayment.checkoutUrl ?? undefined,
+      reused: true,
+    };
   }
 
   const rentalOrder = await prisma.rentalOrder.findFirst({
@@ -20,6 +49,12 @@ const createPayment = async (userId: string, data: CreatePaymentInput) => {
     },
 
     include: {
+      customer: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
       payments: {
         where: {
           status: {
@@ -56,9 +91,9 @@ const createPayment = async (userId: string, data: CreatePaymentInput) => {
     throw new AppError("This rental order has already been paid", 409);
   }
 
-  const existingPayment = rentalOrder.payments[0];
+  const existingOrderPayment = rentalOrder.payments[0];
 
-  if (existingPayment) {
+  if (existingOrderPayment) {
     throw new AppError(
       "A payment is already pending or completed for this rental",
       409,
@@ -70,32 +105,27 @@ const createPayment = async (userId: string, data: CreatePaymentInput) => {
       userId,
       rentalOrderId: rentalOrder.id,
       amount: rentalOrder.totalAmount,
-      method: "STRIPE",
-      provider: "STRIPE",
+      currency: "BDT",
+      method: data.method,
+      provider: data.method,
       status: "PENDING",
+      idempotencyKey,
     },
   });
 
+  const gateway = getPaymentGateway(data.method);
+
+  const transactionId = payment.id;
+
   try {
-    const amountInCents = Math.round(Number(rentalOrder.totalAmount) * 100);
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInCents,
-      currency: "usd",
-
-      automatic_payment_methods: {
-        enabled: true,
-      },
-
-      metadata: {
-        paymentId: payment.id,
-        rentalOrderId: rentalOrder.id,
-        userId,
-      },
-
-      description: `GearUp rental ${rentalOrder.id}`,
-
-      receipt_email: undefined,
+    const result = await gateway.createPayment({
+      amount: Number(rentalOrder.totalAmount),
+      currency: payment.currency,
+      transactionId,
+      paymentId: payment.id,
+      rentalOrderId: rentalOrder.id,
+      customerName: rentalOrder.customer.name,
+      customerEmail: rentalOrder.customer.email,
     });
 
     const updatedPayment = await prisma.payment.update({
@@ -104,13 +134,20 @@ const createPayment = async (userId: string, data: CreatePaymentInput) => {
       },
 
       data: {
-        transactionId: paymentIntent.id,
+        transactionId: result.providerTransactionId,
+
+        clientSecret: result.clientSecret ?? null,
+
+        checkoutUrl: result.checkoutUrl ?? null,
       },
     });
 
     return {
       payment: updatedPayment,
-      clientSecret: paymentIntent.client_secret,
+      gateway: data.method,
+      clientSecret: result.clientSecret ?? undefined,
+      checkoutUrl: result.checkoutUrl ?? undefined,
+      reused: false,
     };
   } catch (error) {
     await prisma.payment.update({
@@ -127,7 +164,7 @@ const createPayment = async (userId: string, data: CreatePaymentInput) => {
   }
 };
 
-const getMyPayments = async (userId: string) => {
+export const getMyPayments = async (userId: string) => {
   return prisma.payment.findMany({
     where: {
       userId,
@@ -141,8 +178,8 @@ const getMyPayments = async (userId: string) => {
       rentalOrder: {
         select: {
           id: true,
-          startDate: true,
-          endDate: true,
+          startTime: true,
+          endTime: true,
           totalAmount: true,
           status: true,
         },
@@ -151,7 +188,7 @@ const getMyPayments = async (userId: string) => {
   });
 };
 
-const getPaymentById = async (paymentId: string, userId: string) => {
+export const getPaymentById = async (paymentId: string, userId: string) => {
   const payment = await prisma.payment.findFirst({
     where: {
       id: paymentId,
@@ -162,8 +199,8 @@ const getPaymentById = async (paymentId: string, userId: string) => {
       rentalOrder: {
         select: {
           id: true,
-          startDate: true,
-          endDate: true,
+          startTime: true,
+          endTime: true,
           subtotal: true,
           totalAmount: true,
           status: true,
@@ -184,3 +221,5 @@ export const paymentService = {
   getMyPayments,
   getPaymentById,
 };
+
+export default createPayment;

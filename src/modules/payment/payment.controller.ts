@@ -1,46 +1,55 @@
-import { Request, Response } from "express";
-
+import type { Request, Response } from "express";
+import { AppError } from "../../middlewares/AppError.js";
+import { refundPayment } from "./payment.refund.service.js";
 import { paymentService } from "./payment.service.js";
 import { handleStripeWebhook } from "./payment.webhook.js";
-import { AppError } from "../../middlewares/AppError.js";
 
-const createPayment = async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError("Authentication required", 401);
+export const handleCreatePayment = async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+
+  const idempotencyKey = req.headers["idempotency-key"];
+
+  if (
+    typeof idempotencyKey !== "string" ||
+    idempotencyKey.trim().length === 0
+  ) {
+    throw new AppError("Idempotency-Key header is required", 400);
   }
 
-  const result = await paymentService.createPayment(req.user.userId, req.body);
+  const result = await paymentService.createPayment(
+    userId,
+    req.body,
+    idempotencyKey,
+  );
 
   res.status(201).json({
     success: true,
-    message: "Stripe payment initialized successfully",
+    message: "Payment initialized successfully",
     data: result,
   });
 };
 
-const getMyPayments = async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError("Authentication required", 401);
-  }
+export const getMyPayments = async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
 
-  const payments = await paymentService.getMyPayments(req.user.userId);
+  const payments = await paymentService.getMyPayments(userId);
 
   res.status(200).json({
     success: true,
-    message: "Payment history fetched successfully",
+    message: "Payments fetched successfully",
     data: payments,
   });
 };
 
-const getPaymentById = async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new AppError("Authentication required", 401);
+export const getPaymentById = async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { id } = req.params;
+
+  if (typeof id !== "string" || id.length === 0) {
+    throw new AppError("Invalid payment id", 400);
   }
 
-  const payment = await paymentService.getPaymentById(
-    req.params.id as string,
-    req.user.userId,
-  );
+  const payment = await paymentService.getPaymentById(id, userId);
 
   res.status(200).json({
     success: true,
@@ -49,37 +58,41 @@ const getPaymentById = async (req: Request, res: Response) => {
   });
 };
 
-const stripeWebhook = async (req: Request, res: Response) => {
-  const signature = req.headers["stripe-signature"];
+export const handleRefundPayment = async (req: Request, res: Response) => {
+  const userId = req.user!.userId;
+  const { id } = req.params;
 
-  if (!signature) {
-    res.status(400).json({
-      success: false,
-      message: "Missing Stripe signature",
-    });
-
-    return;
+  if (typeof id !== "string" || id.length === 0) {
+    throw new AppError("Invalid payment id", 400);
   }
 
-  if (Array.isArray(signature)) {
-    res.status(400).json({
-      success: false,
-      message: "Invalid Stripe signature",
-    });
-
-    return;
-  }
-
-  await handleStripeWebhook(req.body as Buffer, signature);
+  const result = await refundPayment(userId, id, req.body);
 
   res.status(200).json({
-    received: true,
+    success: true,
+    message: "Payment refunded successfully",
+    data: result,
   });
 };
 
+export const stripeWebhook = async (req: Request, res: Response) => {
+  const signature = req.headers["stripe-signature"];
+
+  if (typeof signature !== "string") {
+    throw new AppError("Stripe signature is required", 400);
+  }
+
+  await handleStripeWebhook(req.body, signature);
+
+  res.status(200).json({ received: true });
+};
+
 export const paymentController = {
-  createPayment,
+  createPayment: handleCreatePayment,
   getMyPayments,
   getPaymentById,
+  refundPayment: handleRefundPayment,
   stripeWebhook,
 };
+
+export default handleCreatePayment;
