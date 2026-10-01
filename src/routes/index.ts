@@ -6,6 +6,7 @@ import providerRentalRoutes from "../modules/rental/provider-rental.route.js";
 import rentalRoutes from "../modules/rental/rental.route.js";
 import PaymentRouters from "../modules/payment/payment.router.js";
 import reviewRoutes from "../modules/review/review.route.js";
+import adminRoutes from "../modules/admin/admin.route.js";
 const router: Router = Router();
 
 router.use("/auth", authRoutes);
@@ -15,5 +16,6 @@ router.use("/rentals", rentalRoutes);
 router.use("/provider/rentals", providerRentalRoutes);
 router.use("/payments", PaymentRouters);
 router.use("/reviews", reviewRoutes);
+router.use("/admin", adminRoutes);
 
 export default router;
