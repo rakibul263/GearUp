@@ -1,15 +1,29 @@
 import dotenv from "dotenv";
+import { z } from "zod";
 
 dotenv.config();
 
-export const env = {
-  PORT: process.env.PORT || 3000,
-  NODE_ENV: process.env.NODE_ENV || "development",
-  DATABASE_URL: process.env.DATABASE_URL,
-  JWT_SECRET: process.env.JWT_SECRET || "your_jwt_secret",
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "1h",
-  SALT_ROUNDS: Number(process.env.SALT_ROUNDS) || 10,
-  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",
+const envSchema = z.object({
+  PORT: z.coerce.number().default(5000),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
+  JWT_EXPIRES_IN: z.string().default("1d"),
+  SALT_ROUNDS: z.coerce.number().default(10),
+  STRIPE_SECRET_KEY: z.string().optional().default(""),
+  STRIPE_WEBHOOK_SECRET: z.string().optional().default(""),
+});
 
-  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
-};
+const parsedEnv = envSchema.safeParse(process.env);
+
+if (!parsedEnv.success) {
+  console.error(
+    "❌ Invalid environment configuration:",
+    JSON.stringify(parsedEnv.error.format(), null, 2),
+  );
+  throw new Error("Invalid environment variables. Please check your .env file.");
+}
+
+export const env = parsedEnv.data;
