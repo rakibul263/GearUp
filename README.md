@@ -42,12 +42,13 @@
 
 ## 🌟 Project Overview
 
-Outdoor adventure gear is often expensive, infrequently used, and space-consuming. GearUp provides an end-to-end backend platform:
+  Outdoor adventure gear is often expensive, infrequently used, and space-consuming. GearUp provides an end-to-end backend platform:
 - **Customers**: Browse equipment with rich search and filters, check real-time availability across dates, place orders with server-calculated amounts, pay securely via Stripe, and review gear once returned.
 - **Providers**: List and manage inventory, customize pricing per day, oversee rental requests, and update order lifecycles (`CONFIRMED` ➔ `PICKED_UP` ➔ `RETURNED`).
 - **Admins**: Manage equipment categories, suspend/activate user accounts, inspect all platform gear and rentals, and safely remove items with active-rental protection.
 
 ---
+
 
 ## 🛡️ Architectural Highlights & Hardening
 
@@ -85,26 +86,26 @@ Outdoor adventure gear is often expensive, infrequently used, and space-consumin
 flowchart TD
     Client(["🌐 Client (Web / Mobile)"]) -->|HTTP Request| RequestLogger["⏱️ Request Logger Middleware"]
     RequestLogger --> CorsCookie["🛡️ CORS & CookieParser"]
-    
+
     CorsCookie --> WebhookBranch{"Route is Webhook?"}
     WebhookBranch -->|Yes /api/payments/webhook| RawBody["📦 express.raw (Buffer)"]
     WebhookBranch -->|No Standard API| JsonBody["📝 express.json()"]
-    
+
     RawBody --> StripeWebhookHandler["🔐 Stripe Signature Verification & Handler"]
     JsonBody --> AuthCheck{"🔒 Auth Middleware"}
-    
+
     AuthCheck -->|Public Route| Validator["📝 Zod Validation"]
     AuthCheck -->|Protected Route| RoleCheck["🔑 JWT Verification & requireRoles()"]
     RoleCheck --> Validator
-    
+
     Validator --> Controller["🎮 Controller Layer"]
     Controller --> Service["⚙️ Service Layer (Business Rules)"]
-    
+
     Service --> PrismaTx{"💳 Database Transaction"}
     PrismaTx -->|Rental Booking| SerializableTx["🔄 Serializable Tx + Retry Loop"]
     PrismaTx -->|Standard Query| PrismaClient["📦 Prisma Client (PostgreSQL)"]
     SerializableTx --> PrismaClient
-    
+
     Service -->|Success| Controller -->|JSON Response| Client
     Service -.->|Error| PrismaMapper["🚨 handlePrismaError (P2002/P2025/P2034)"]
     PrismaMapper -.-> GlobalErrorHandler["🚨 Global Error Middleware"]
@@ -133,6 +134,7 @@ erDiagram
 ```
 
 ### Models Summary:
+
 - **`User`**: Credentials, contact information, role (`CUSTOMER`, `PROVIDER`, `ADMIN`), and account status (`ACTIVE`, `INACTIVE`, `SUSPENDED`).
 - **`Category`**: Equipment classifications with unique slugs.
 - **`Gear`**: Inventory owned by a Provider, with daily rate, stock count, specifications, availability toggle, and unique slug.
@@ -143,28 +145,30 @@ erDiagram
 
 ---
 
+
 ## 📡 Complete API Reference
 
 **Base URL**: `http://localhost:5000/api`
 
 ### 1. Health & Base
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/` | Public | Root welcome message |
-| `GET` | `/health` | Public | API health check status (`{"success": true, "message": "GearUp API is running"}`) |
+| Method | Endpoint  | Access | Description                                                                       |
+| :----- | :-------- | :----- | :-------------------------------------------------------------------------------- |
+| `GET`  | `/`       | Public | Root welcome message                                                              |
+| `GET`  | `/health` | Public | API health check status (`{"success": true, "message": "GearUp API is running"}`) |
 
 ---
 
 ### 2. Authentication (`/api/auth`)
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/register` | Public | Register new user as `CUSTOMER` or `PROVIDER` |
-| `POST` | `/api/auth/login` | Public | Authenticate user and receive JWT access token |
-| `GET` | `/api/auth/me` | Authenticated | Retrieve current user profile |
+  | Method | Endpoint | Access | Description |
+  | :--- | :--- | :--- | :--- |
+  | `POST` | `/api/auth/register` | Public | Register new user as `CUSTOMER` or `PROVIDER` |
+  | `POST` | `/api/auth/login` | Public | Authenticate user and receive JWT access token |
+  | `GET` | `/api/auth/me` | Authenticated | Retrieve current user profile |
 
 #### Register (`POST /api/auth/register`)
+
 ```json
 {
   "name": "Jane Doe",
@@ -175,7 +179,10 @@ erDiagram
 }
 ```
 
+
+
 #### Login (`POST /api/auth/login`)
+
 ```json
 {
   "email": "jane@example.com",
@@ -183,33 +190,36 @@ erDiagram
 }
 ```
 
+
 ---
 
 ### 3. Categories (`/api/categories`)
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/categories` | Public | List all categories with gear count |
-| `GET` | `/api/categories/:id` | Public | Get single category details |
-| `POST` | `/api/categories` | `ADMIN` | Create a new category |
-| `PATCH` | `/api/categories/:id` | `ADMIN` | Update category details |
+| Method   | Endpoint              | Access  | Description                                   |
+| :------- | :-------------------- | :------ | :-------------------------------------------- |
+| `GET`    | `/api/categories`     | Public  | List all categories with gear count           |
+| `GET`    | `/api/categories/:id` | Public  | Get single category details                   |
+| `POST`   | `/api/categories`     | `ADMIN` | Create a new category                         |
+| `PATCH`  | `/api/categories/:id` | `ADMIN` | Update category details                       |
 | `DELETE` | `/api/categories/:id` | `ADMIN` | Delete category (blocked if it contains gear) |
 
 ---
 
 ### 4. Gear Inventory (`/api/gear` & `/api/gears`)
 
-*Both `/api/gear` and `/api/gears` routes are supported.*
+_Both `/api/gear` and `/api/gears` routes are supported._
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/gear` | Public | Browse gear with search, category, brand, and pagination |
-| `GET` | `/api/gear/:id` | Public | Gear item details with provider, category, and `ratingSummary` |
-| `POST` | `/api/gear` | `PROVIDER` | Add new gear item to inventory |
-| `PATCH` | `/api/gear/:id` | `PROVIDER` | Update gear item (owner only) |
-| `DELETE` | `/api/gear/:id` | `PROVIDER` | Remove gear item (blocked if rental history exists) |
+| Method   | Endpoint         | Access     | Description                                                    |
+| :------- | :--------------- | :--------- | :------------------------------------------------------------- |
+| `GET`    | `/api/gear`      | Public     | Browse gear with search, category, brand, and pagination       |
+| `GET`    | `/api/gear/:id`  | Public     | Gear item details with provider, category, and `ratingSummary` |
+| `POST`   | `/api/gear`      | `PROVIDER` | Add new gear item to inventory                                 |
+| `PATCH`  | `/api/gear/:id`  | `PROVIDER` | Update gear item (owner only)                                  |
+| `DELETE` | `/api/gear/:id`  | `PROVIDER` | Remove gear item (blocked if rental history exists)            |
+
 
 #### Query Parameters for `GET /api/gear`:
+
 - `search`: Case-insensitive search on name, brand, or description
 - `categoryId`: Filter by specific category ID
 - `brand`: Filter by brand name
@@ -217,7 +227,9 @@ erDiagram
 - `page`: Page number (default: `1`)
 - `limit`: Items per page (default: `10`)
 
+
 #### Create Gear (`POST /api/gear`):
+
 ```json
 {
   "categoryId": "category-uuid",
@@ -225,7 +237,7 @@ erDiagram
   "slug": "msr-hubba-hubba-2p-tent",
   "brand": "MSR",
   "description": "Ultralight freestanding 3-season tent.",
-  "pricePerDay": 250.00,
+  "pricePerDay": 250.0,
   "stock": 5,
   "imageUrl": "https://example.com/tent.jpg",
   "specifications": { "weightKg": 1.72, "capacity": 2 },
@@ -237,14 +249,16 @@ erDiagram
 
 ### 5. Rentals & Booking (`/api/rentals`)
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/rentals` | `CUSTOMER` | Book rental order (concurrency-safe) |
-| `GET` | `/api/rentals` | `CUSTOMER` | List personal rental order history |
-| `GET` | `/api/rentals/:id` | `CUSTOMER` | View single rental order details |
-| `PATCH` | `/api/rentals/:id/cancel` | `CUSTOMER` | Cancel order (only if status is `PLACED`) |
+| Method  | Endpoint                  | Access     | Description                                  |
+| :------ | :------------------------ | :--------- | :------------------------------------------- |
+| `POST`  | `/api/rentals`            | `CUSTOMER` | Book rental order (concurrency-safe)         |
+| `GET`   | `/api/rentals`            | `CUSTOMER` | List personal rental order history           |
+| `GET`   | `/api/rentals/:id`        | `CUSTOMER` | View single rental order details             |
+| `PATCH` | `/api/rentals/:id/cancel` | `CUSTOMER` | Cancel order (only if status is `PLACED`)    |
+
 
 #### Create Rental Booking (`POST /api/rentals`):
+
 ```json
 {
   "startDate": "2026-10-10",
@@ -258,16 +272,18 @@ erDiagram
 }
 ```
 
+
 ---
 
 ### 6. Provider Rental Management (`/api/provider/rentals`)
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/provider/rentals` | `PROVIDER` | List incoming rental orders for provider's gear |
+| Method  | Endpoint                           | Access     | Description                                     |
+| :------ | :--------------------------------- | :--------- | :---------------------------------------------- |
+| `GET`   | `/api/provider/rentals`            | `PROVIDER` | List incoming rental orders for provider's gear |
 | `PATCH` | `/api/provider/rentals/:id/status` | `PROVIDER` | Update order status along lifecycle transitions |
 
 #### Status Transition Rules:
+
 - `PLACED` ➔ `CONFIRMED`
 - `PAID` ➔ `PICKED_UP`
 - `PICKED_UP` ➔ `RETURNED`
@@ -276,23 +292,27 @@ erDiagram
 
 ### 7. Payments & Stripe Webhooks (`/api/payments`)
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/payments` | `CUSTOMER` | Initialize Stripe payment (requires `Idempotency-Key`) |
-| `GET` | `/api/payments` | `CUSTOMER` | List customer's payment transactions |
-| `GET` | `/api/payments/:id` | `CUSTOMER` | Get single payment record |
+| Method | Endpoint                   | Access     | Description                                                    |
+| :----- | :------------------------- | :--------- | :------------------------------------------------------------- |
+| `POST` | `/api/payments`            | `CUSTOMER` | Initialize Stripe payment (requires `Idempotency-Key`)         |
+| `GET`  | `/api/payments`            | `CUSTOMER` | List customer's payment transactions                           |
+| `GET`  | `/api/payments/:id`        | `CUSTOMER` | Get single payment record                                      |
 | `POST` | `/api/payments/:id/refund` | `CUSTOMER` | Refund payment (allowed if rental is `RETURNED` or `CANCELED`) |
-| `POST` | `/api/payments/webhook` | Stripe | Webhook endpoint receiving signed Stripe events |
+| `POST` | `/api/payments/webhook`    | Stripe     | Webhook endpoint receiving signed Stripe events                |
 
 #### Create Payment (`POST /api/payments`):
+
 - **Headers**: `Idempotency-Key: <unique-client-key>`
+
 ```json
 {
   "rentalOrderId": "order-uuid",
   "method": "STRIPE"
 }
 ```
+
 - **Response** (`201 Created`):
+
 ```json
 {
   "success": true,
@@ -306,6 +326,7 @@ erDiagram
 ```
 
 #### Refund Payment (`POST /api/payments/:id/refund`):
+
 ```json
 {
   "reason": "Rental returned in pristine condition"
@@ -314,14 +335,17 @@ erDiagram
 
 ---
 
+
 ### 8. Reviews (`/api/reviews`)
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/reviews` | `CUSTOMER` | Review gear from a `RETURNED` rental |
-| `GET` | `/api/reviews/gear/:gearItemId` | Public | Get paginated reviews for a gear item (`?page=1&limit=10`) |
+| Method  | Endpoint                           | Access     | Description                                                |
+| :------ | :--------------------------------- | :--------- | :--------------------------------------------------------- |
+| `POST`  | `/api/reviews`                     | `CUSTOMER` | Review gear from a `RETURNED` rental                       |
+| `GET`   | `/api/reviews/gear/:gearItemId`    | Public     | Get paginated reviews for a gear item (`?page=1&limit=10`) |
+
 
 #### Create Review (`POST /api/reviews`):
+
 ```json
 {
   "rentalOrderId": "order-uuid",
@@ -333,17 +357,18 @@ erDiagram
 
 ---
 
+
 ### 9. Admin Governance (`/api/admin`)
 
-*All `/api/admin/*` endpoints require `ADMIN` role.*
+  _All `/api/admin/_`endpoints require`ADMIN` role.\*
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/admin/users` | `ADMIN` | List platform users with pagination (`?page=1&limit=10`) |
-| `PATCH` | `/api/admin/users/:id/status` | `ADMIN` | Suspend or activate user (`ACTIVE` / `SUSPENDED`) |
-| `GET` | `/api/admin/gear` | `ADMIN` | Overview of all gear across all providers with pagination |
-| `DELETE` | `/api/admin/gear/:id` | `ADMIN` | Delete gear (blocked if it has active rentals) |
-| `GET` | `/api/admin/rentals` | `ADMIN` | Comprehensive platform rental overview with payments |
+| Method   | Endpoint                      | Access  | Description                                               |
+| :------- | :---------------------------- | :------ | :-------------------------------------------------------- |
+| `GET`    | `/api/admin/users`            | `ADMIN` | List platform users with pagination (`?page=1&limit=10`)  |
+| `PATCH`  | `/api/admin/users/:id/status` | `ADMIN` | Suspend or activate user (`ACTIVE` / `SUSPENDED`)         |
+| `GET`    | `/api/admin/gear`             | `ADMIN` | Overview of all gear across all providers with pagination |
+| `DELETE` | `/api/admin/gear/:id`         | `ADMIN` | Delete gear (blocked if it has active rentals)            |
+| `GET`    | `/api/admin/rentals`          | `ADMIN` | Comprehensive platform rental overview with payments      |
 
 ---
 
@@ -374,12 +399,14 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 ## 💻 Getting Started (Setup with pnpm)
 
 ### Step 1: Clone the Repository
+
 ```bash
 git clone https://github.com/rakibul263/GearUp-Backend.git
 cd GearUp-Backend
 ```
 
 ### Step 2: Install Dependencies
+
 ```bash
 pnpm install
 ```
@@ -388,9 +415,10 @@ pnpm install
 ```bash
 cp .env.example .env
 # Edit .env with your PostgreSQL database and Stripe credentials
-```
+````
 
 ### Step 4: Synchronize Database Schema
+
 ```bash
 # Push schema to PostgreSQL
 pnpm prisma db push
@@ -400,9 +428,11 @@ pnpm prisma generate
 ```
 
 ### Step 5: Start Development Server
+
 ```bash
 pnpm dev
 ```
+
 Server runs with live watch on `http://localhost:5000`.
 
 ---
@@ -470,15 +500,15 @@ GearUp/
 
 ## 📜 Available Scripts
 
-| Command | Description |
-| :--- | :--- |
-| `pnpm dev` | Starts development server with live watch mode using `tsx` |
-| `pnpm build` | Compiles TypeScript (`tsc`) and resolves ESM extensions via script |
-| `pnpm typecheck` | Runs TypeScript compiler checks without emitting files (`tsc --noEmit`) |
-| `pnpm start` | Runs the compiled production server (`node dist/src/server.js`) |
-| `pnpm prisma studio` | Launches Prisma interactive visual database studio |
-| `pnpm prisma db push` | Synchronizes the Prisma schema directly with the database |
-| `pnpm prisma generate` | Regenerates the Prisma Client |
+| Command                | Description                                                             |
+| :--------------------- | :---------------------------------------------------------------------- |
+| `pnpm dev`             | Starts development server with live watch mode using `tsx`              |
+| `pnpm build`           | Compiles TypeScript (`tsc`) and resolves ESM extensions via script      |
+| `pnpm typecheck`       | Runs TypeScript compiler checks without emitting files (`tsc --noEmit`) |
+| `pnpm start`           | Runs the compiled production server (`node dist/src/server.js`)         |
+| `pnpm prisma studio`   | Launches Prisma interactive visual database studio                      |
+| `pnpm prisma db push`  | Synchronizes the Prisma schema directly with the database               |
+| `pnpm prisma generate` | Regenerates the Prisma Client                                           |
 
 ---
 
