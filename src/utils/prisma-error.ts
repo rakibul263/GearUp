@@ -38,3 +38,4 @@ export const handlePrismaError = (error: unknown): never => {
 
   throw error;
 };
+

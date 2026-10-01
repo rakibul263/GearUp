@@ -19,6 +19,8 @@ export const handleCreateReview = async (
   });
 };
 
+import { getPagination } from "../../utils/pagination.js";
+
 export const handleGetGearReviews = async (
   req: Request,
   res: Response,
@@ -29,11 +31,13 @@ export const handleGetGearReviews = async (
     throw new AppError("Invalid gear item id", 400);
   }
 
-  const reviews = await getGearReviews(gearItemId);
+  const pagination = getPagination(req.query);
+  const result = await getGearReviews(gearItemId, pagination);
 
   res.status(200).json({
     success: true,
-    data: reviews,
+    data: result.data,
+    meta: result.meta,
   });
 };
 

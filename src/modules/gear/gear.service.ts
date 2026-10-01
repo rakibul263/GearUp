@@ -147,33 +147,54 @@ const getGears = async (query: GearListQuery) => {
 };
 
 const getGearById = async (gearId: string) => {
-  const gear = await prisma.gear.findUnique({
-    where: {
-      id: gearId,
-    },
-    include: {
-      category: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          description: true,
+  const [gear, reviewStats] = await Promise.all([
+    prisma.gear.findUnique({
+      where: {
+        id: gearId,
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+          },
+        },
+        provider: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
-      provider: {
-        select: {
-          id: true,
-          name: true,
-        },
+    }),
+    prisma.review.aggregate({
+      where: {
+        gearItemId: gearId,
       },
-    },
-  });
+      _avg: {
+        rating: true,
+      },
+      _count: {
+        rating: true,
+      },
+    }),
+  ]);
 
   if (!gear) {
     throw new AppError("Gear not found", 404);
   }
 
-  return gear;
+  return {
+    ...gear,
+    ratingSummary: {
+      averageRating: reviewStats._avg.rating
+        ? Number(reviewStats._avg.rating.toFixed(1))
+        : 0,
+      reviewCount: reviewStats._count.rating,
+    },
+  };
 };
 
 const updateGear = async (

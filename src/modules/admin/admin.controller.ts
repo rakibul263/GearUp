@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { AppError } from "../../middlewares/AppError.js";
+import { getPagination } from "../../utils/pagination.js";
 import {
   deleteGearAsAdmin,
   getAllGear,
@@ -9,14 +10,16 @@ import {
 } from "./admin.service.js";
 
 export const handleGetAllUsers = async (
-  _req: Request,
+  req: Request,
   res: Response,
 ): Promise<void> => {
-  const users = await getAllUsers();
+  const pagination = getPagination(req.query);
+  const result = await getAllUsers(pagination);
 
   res.status(200).json({
     success: true,
-    data: users,
+    data: result.data,
+    meta: result.meta,
   });
 };
 
@@ -44,14 +47,16 @@ export const handleUpdateUserStatus = async (
 };
 
 export const handleGetAllGear = async (
-  _req: Request,
+  req: Request,
   res: Response,
 ): Promise<void> => {
-  const gear = await getAllGear();
+  const pagination = getPagination(req.query);
+  const result = await getAllGear(pagination);
 
   res.status(200).json({
     success: true,
-    data: gear,
+    data: result.data,
+    meta: result.meta,
   });
 };
 
@@ -74,14 +79,16 @@ export const handleDeleteGearAsAdmin = async (
 };
 
 export const handleGetAllRentals = async (
-  _req: Request,
+  req: Request,
   res: Response,
 ): Promise<void> => {
-  const rentals = await getAllRentals();
+  const pagination = getPagination(req.query);
+  const result = await getAllRentals(pagination);
 
   res.status(200).json({
     success: true,
-    data: rentals,
+    data: result.data,
+    meta: result.meta,
   });
 };
 

@@ -72,23 +72,49 @@ export const createReview = async (
   return review;
 };
 
-export const getGearReviews = async (gearItemId: string) => {
-  return prisma.review.findMany({
-    where: {
-      gearItemId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      customer: {
-        select: {
-          id: true,
-          name: true,
+import { getPagination, type PaginationQuery } from "../../utils/pagination.js";
+
+export const getGearReviews = async (
+  gearItemId: string,
+  pagination?: PaginationQuery,
+) => {
+  const { page, limit, skip } = getPagination(pagination ?? {});
+
+  const [reviews, total] = await prisma.$transaction([
+    prisma.review.findMany({
+      where: {
+        gearItemId,
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
+    }),
+    prisma.review.count({
+      where: {
+        gearItemId,
+      },
+    }),
+  ]);
+
+  return {
+    data: reviews,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
     },
-  });
+  };
 };
 
 export const reviewService = {
