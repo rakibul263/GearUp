@@ -1,53 +1,39 @@
-import http from "node:http";
 import app from "./app.js";
-import prisma from "./config/database.js";
+import {
+  connectDatabase,
+  disconnectDatabase,
+} from "./config/database.js";
 import { env } from "./config/env.js";
 
-const server = http.createServer(app);
+const startServer = async () => {
+  try {
+    await connectDatabase();
 
-server.listen(env.PORT, () => {
-  console.log(
-    `🚀 GearUp server running on port ${env.PORT} in ${env.NODE_ENV} mode`,
-  );
-});
+    const server = app.listen(env.PORT, () => {
+      console.log(`GearUp API running on port ${env.PORT}`);
+    });
 
-const gracefulShutdown = async (signal: string) => {
-  console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+    const shutdown = async (signal: string) => {
+      console.log(`${signal} received. Shutting down gracefully...`);
 
-  server.close(async (err) => {
-    if (err) {
-      console.error("❌ Error closing HTTP server:", err);
-      process.exit(1);
-    }
+      server.close(async () => {
+        await disconnectDatabase();
 
-    console.log("🔌 HTTP server closed successfully.");
+        console.log("GearUp API stopped");
 
-    try {
-      await prisma.$disconnect();
-      console.log("💾 Database connection closed successfully.");
-      process.exit(0);
-    } catch (dbErr) {
-      console.error("❌ Error disconnecting database:", dbErr);
-      process.exit(1);
-    }
-  });
+        process.exit(0);
+      });
+    };
 
-  // Force shutdown if cleanup takes too long
-  setTimeout(() => {
-    console.error("⚠️ Graceful shutdown timed out. Forcing termination.");
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+    process.on("SIGINT", () => shutdown("SIGINT"));
+  } catch (error) {
+    console.error("Failed to start GearUp API", error);
+
+    await disconnectDatabase();
+
     process.exit(1);
-  }, 10000).unref();
+  }
 };
 
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-
-process.on("uncaughtException", (error) => {
-  console.error("💥 Uncaught Exception:", error);
-  gracefulShutdown("uncaughtException");
-});
-
-process.on("unhandledRejection", (reason) => {
-  console.error("💥 Unhandled Rejection:", reason);
-  gracefulShutdown("unhandledRejection");
-});
+startServer();

@@ -1,22 +1,24 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { Application } from "express";
+
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 import { requestLogger } from "./middlewares/logger.middleware.js";
 import { notFoundMiddleware } from "./middlewares/notFound.middleware.js";
-import paymentWebhookRoutes from "./modules/payment/payment.webhook.route.js";
-import apiRoutes from "./routes/index.js";
+import stripeWebhookRoute from "./modules/payment/stripe-webhook.route.js";
+import routes from "./routes/index.js";
 
 const app: Application = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  }),
+);
+
 app.use(cookieParser());
 app.use(requestLogger);
-
-// Stripe webhook must receive the raw body for signature verification
-app.use("/api/payments/webhook", paymentWebhookRoutes);
-
-app.use(express.json());
 
 app.get("/", (_req, res) => {
   res.send("GearUp API is running");
@@ -29,7 +31,18 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.use("/api", apiRoutes);
+// Stripe webhook must receive the raw body before express.json()
+app.use("/api/payments/stripe/webhook", stripeWebhookRoute);
+app.use("/api/payments/webhook", stripeWebhookRoute);
+
+app.use(express.json());
+app.use(
+  express.urlencoded({
+    extended: true,
+  }),
+);
+
+app.use("/api", routes);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);

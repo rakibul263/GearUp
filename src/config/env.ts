@@ -1,29 +1,32 @@
-import dotenv from "dotenv";
-import { z } from "zod";
+import "dotenv/config";
 
-dotenv.config();
+const getEnv = (key: string): string => {
+  const value = process.env[key];
 
-const envSchema = z.object({
-  PORT: z.coerce.number().default(5000),
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
-  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
-  JWT_EXPIRES_IN: z.string().default("1d"),
-  SALT_ROUNDS: z.coerce.number().default(10),
-  STRIPE_SECRET_KEY: z.string().optional().default(""),
-  STRIPE_WEBHOOK_SECRET: z.string().optional().default(""),
-});
+  if (!value) {
+    throw new Error(`Missing environment variable: ${key}`);
+  }
 
-const parsedEnv = envSchema.safeParse(process.env);
+  return value;
+};
 
-if (!parsedEnv.success) {
-  console.error(
-    "❌ Invalid environment configuration:",
-    JSON.stringify(parsedEnv.error.format(), null, 2),
-  );
-  throw new Error("Invalid environment variables. Please check your .env file.");
+const jwtSecret = getEnv("JWT_SECRET");
+
+if (jwtSecret.length < 32) {
+  throw new Error("JWT_SECRET must be at least 32 characters long");
 }
 
-export const env = parsedEnv.data;
+export const env = {
+  PORT: Number(process.env.PORT) || 5000,
+  NODE_ENV: process.env.NODE_ENV || "development",
+  DATABASE_URL: getEnv("DATABASE_URL"),
+  JWT_SECRET: jwtSecret,
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "7d",
+  SALT_ROUNDS: Number(process.env.SALT_ROUNDS) || 10,
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || "",
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || "",
+  APP_BASE_URL: process.env.APP_BASE_URL || "http://localhost:5000",
+  SSLCOMMERZ_STORE_ID: process.env.SSLCOMMERZ_STORE_ID || "",
+  SSLCOMMERZ_STORE_PASSWORD: process.env.SSLCOMMERZ_STORE_PASSWORD || "",
+  SSLCOMMERZ_IS_LIVE: process.env.SSLCOMMERZ_IS_LIVE === "true",
+};

@@ -1,7 +1,12 @@
-node_modules
-dist
-generated
+node_modules/
+dist/
 .env
-/generated/prisma
+.env.*
+!.env.example
+
+generated/
+src/generated/
+coverage/
+
+*.log
 .DS_Store
-/src/generated/prisma
