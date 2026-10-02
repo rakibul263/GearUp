@@ -9,9 +9,11 @@ import {
   refundPaymentSchema,
 } from "./payment.validation.js";
 import { validate } from "../../middlewares/validation.middleware.js";
+import { paymentLimiter } from "../../middlewares/rateLimit.middleware.js";
 
 const router: Router = Router();
 
+router.use(paymentLimiter);
 router.use(authMiddleware, requireRoles("CUSTOMER"));
 
 router.post(

@@ -105,6 +105,43 @@ export const handleStripeWebhook = async (
       break;
     }
 
+    case "charge.refunded": {
+      const charge = event.data.object;
+      const paymentIntentId =
+        typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : null;
+
+      if (!paymentIntentId) {
+        break;
+      }
+
+      const payment = await prisma.payment.findUnique({
+        where: {
+          transactionId: paymentIntentId,
+        },
+        include: {
+          refunds: true,
+        },
+      });
+
+      if (payment) {
+        for (const refund of payment.refunds) {
+          if (refund.status === "PROCESSING") {
+            await prisma.paymentRefund.update({
+              where: { id: refund.id },
+              data: {
+                status: "COMPLETED",
+                refundedAt: new Date(),
+              },
+            });
+          }
+        }
+      }
+
+      break;
+    }
+
     default:
       break;
   }

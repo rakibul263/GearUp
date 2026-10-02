@@ -11,7 +11,10 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "prisma db seed",
     "stripe:webhook": "stripe listen --forward-to localhost:5000/api/payments/webhook",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "tsx --test --test-concurrency=1 \"tests/**/*.test.ts\"",
+    "test:unit": "tsx --test --test-concurrency=1 \"tests/unit/**/*.test.ts\"",
+    "test:integration": "tsx --test --test-concurrency=1 \"tests/integration/**/*.test.ts\"",
+    "test:load": "tsx scripts/load-test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.8.0",

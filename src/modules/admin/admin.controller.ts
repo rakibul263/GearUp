@@ -95,10 +95,27 @@ export const handleGetAllRentals = async (
   });
 };
 
+export const handleReconcileRefunds = async (
+  _req: Request,
+  res: Response,
+): Promise<void> => {
+  const { reconcilePendingRefunds } = await import(
+    "../payment/payment.refund.reconcile.js"
+  );
+  const report = await reconcilePendingRefunds();
+
+  res.status(200).json({
+    success: true,
+    message: "Refund reconciliation executed successfully",
+    data: report,
+  });
+};
+
 export const adminController = {
   getAllUsers: handleGetAllUsers,
   updateUserStatus: handleUpdateUserStatus,
   getAllGear: handleGetAllGear,
   deleteGearAsAdmin: handleDeleteGearAsAdmin,
   getAllRentals: handleGetAllRentals,
+  reconcileRefunds: handleReconcileRefunds,
 };

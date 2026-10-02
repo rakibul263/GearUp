@@ -3,6 +3,7 @@ import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { requireRoles } from "../../middlewares/role.middleware.js";
 import { validate } from "../../middlewares/validation.middleware.js";
 import {
+  adminController,
   handleDeleteGearAsAdmin,
   handleGetAllGear,
   handleGetAllRentals,
@@ -29,5 +30,8 @@ router.delete("/gear/:id", handleDeleteGearAsAdmin);
 
 // Rental management
 router.get("/rentals", handleGetAllRentals);
+
+// Refund reconciliation
+router.post("/refunds/reconcile", adminController.reconcileRefunds);
 
 export default router;

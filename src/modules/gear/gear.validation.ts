@@ -19,7 +19,8 @@ export const createGearSchema = z.object({
 
   description: z
     .string()
-    .max(2000, "Description must not exceed 2000 character."),
+    .max(2000, "Description must not exceed 2000 characters")
+    .optional(),
 
   brand: z.string().max(100, "Brand must not exceed 100 characters").optional(),
 
