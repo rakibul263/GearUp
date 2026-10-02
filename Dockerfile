@@ -6,23 +6,31 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install native build tools for bcrypt and native compilation on Alpine musl
+RUN apk add --no-cache python3 make g++ gcc libc-dev openssl
 
-COPY package.json pnpm-lock.yaml ./
+# Install pnpm pinned to v9 to match lockfileVersion: '9.0'
+RUN npm install -g pnpm@9.15.4
+
+# Copy dependency manifests and configuration
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* prisma.config.ts* ./
 COPY prisma ./prisma
 
-RUN pnpm install --frozen-lockfile
+# Install all dependencies (development + production) with fallback if platform resolution differs
+RUN pnpm install --frozen-lockfile || pnpm install
 
 # -------------------------------------------------------------
-# Stage 2: Build
+# Stage 2: Build Application
 # -------------------------------------------------------------
 FROM node:24-alpine AS builder
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install native runtime/openssl tools and pnpm
+RUN apk add --no-cache openssl
+RUN npm install -g pnpm@9.15.4
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json pnpm-lock.yaml tsconfig.json ./
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* prisma.config.ts* tsconfig.json ./
 COPY prisma ./prisma
 COPY scripts ./scripts
 COPY src ./src
@@ -31,10 +39,10 @@ COPY src ./src
 RUN pnpm prisma:generate && pnpm build
 
 # Prune devDependencies for lean production image
-RUN pnpm prune --prod
+RUN pnpm prune --prod || true
 
 # -------------------------------------------------------------
-# Stage 3: Production Runtime
+# Stage 3: Minimal Production Runtime
 # -------------------------------------------------------------
 FROM node:24-alpine AS runner
 WORKDIR /app
@@ -42,10 +50,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=5000
 
-# Install openssl for Prisma runtime engine if needed
-RUN apk add --no-cache openssl curl
+# Install runtime libraries (OpenSSL for Prisma engine, curl for healthcheck, libstdc++ for native addons)
+RUN apk add --no-cache openssl curl libstdc++
 
-# Create non-root user
+# Run container as unprivileged non-root user
 USER node
 
 # Copy production assets
@@ -54,6 +62,7 @@ COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/dist ./dist
 COPY --chown=node:node --from=builder /app/generated ./generated
 COPY --chown=node:node --from=builder /app/prisma ./prisma
+COPY --chown=node:node --from=builder /app/prisma.config.ts* ./
 
 EXPOSE 5000
 

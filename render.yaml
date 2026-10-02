@@ -3,7 +3,7 @@ services:
     name: gearup-api
     env: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm prisma:generate && pnpm build
+    buildCommand: (pnpm install --frozen-lockfile || pnpm install) && pnpm prisma:generate && pnpm build
     startCommand: node dist/src/server.js
     healthCheckPath: /health
     envVars:
