@@ -1,5 +1,6 @@
 import prisma from "../../config/database.js";
 import { AppError } from "../../middlewares/AppError.js";
+import { getPagination, type PaginationQuery } from "../../utils/pagination.js";
 import type { CreateReviewInput } from "./review.validation.js";
 
 export const createReview = async (
@@ -71,8 +72,6 @@ export const createReview = async (
 
   return review;
 };
-
-import { getPagination, type PaginationQuery } from "../../utils/pagination.js";
 
 export const getGearReviews = async (
   gearItemId: string,

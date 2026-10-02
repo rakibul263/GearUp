@@ -5,13 +5,13 @@ export const createGearSchema = z.object({
 
   name: z
     .string()
-    .min(2, "Slug must be at least 2 characters")
-    .max(150, "Gear name must not exceed 150 character."),
+    .min(2, "Gear name must be at least 2 characters")
+    .max(150, "Gear name must not exceed 150 characters"),
 
   slug: z
     .string()
-    .min(2, "Gear name must be at least 2 characters.")
-    .max(200, "Slug must not exceed 180 characters")
+    .min(2, "Slug must be at least 2 characters")
+    .max(200, "Slug must not exceed 200 characters")
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       "Slug must contain only lowercase letters, numbers, and hyphens",

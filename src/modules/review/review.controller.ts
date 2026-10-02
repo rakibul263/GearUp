@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { AppError } from "../../middlewares/AppError.js";
+import { getPagination } from "../../utils/pagination.js";
 import { createReview, getGearReviews } from "./review.service.js";
 
 export const handleCreateReview = async (
@@ -19,8 +20,6 @@ export const handleCreateReview = async (
   });
 };
 
-import { getPagination } from "../../utils/pagination.js";
-
 export const handleGetGearReviews = async (
   req: Request,
   res: Response,
@@ -36,6 +35,7 @@ export const handleGetGearReviews = async (
 
   res.status(200).json({
     success: true,
+    message: "Reviews fetched successfully",
     data: result.data,
     meta: result.meta,
   });

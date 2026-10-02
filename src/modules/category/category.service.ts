@@ -21,7 +21,7 @@ const createCategory = async (data: CreateCategoryInput) => {
 
   if (existingCategory) {
     throw new AppError(
-      "Category with this name or slug is already exists",
+      "Category with this name or slug already exists",
       409,
     );
   }

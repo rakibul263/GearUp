@@ -50,6 +50,10 @@ const login = async (data: LoginInput) => {
     throw new AppError("Invalid email or password", 401);
   }
 
+  if (user.status === "SUSPENDED") {
+    throw new AppError("Your account has been suspended", 403);
+  }
+
   if (user.status === "INACTIVE") {
     throw new AppError("Your account is inactive. Please contact support.", 403);
   }

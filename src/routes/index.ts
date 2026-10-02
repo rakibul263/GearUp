@@ -1,12 +1,12 @@
 import { Router } from "express";
-import adminRoutes from "../modules/admin/admin.route.js";
 import authRoutes from "../modules/auth/auth.route.js";
 import categoryRoutes from "../modules/category/category.route.js";
 import gearRoutes from "../modules/gear/gear.route.js";
-import PaymentRouters from "../modules/payment/payment.router.js";
 import providerRentalRoutes from "../modules/rental/provider-rental.route.js";
 import rentalRoutes from "../modules/rental/rental.route.js";
+import PaymentRouters from "../modules/payment/payment.router.js";
 import reviewRoutes from "../modules/review/review.route.js";
+import adminRoutes from "../modules/admin/admin.route.js";
 
 const router: Router = Router();
 

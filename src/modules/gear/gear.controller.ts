@@ -40,7 +40,8 @@ const getGears = async (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: "Gears fetched successfully",
-    ...gears,
+    data: gears.data,
+    meta: gears.meta,
   });
 };
 

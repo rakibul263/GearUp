@@ -18,6 +18,7 @@ export const handleGetAllUsers = async (
 
   res.status(200).json({
     success: true,
+    message: "Users fetched successfully",
     data: result.data,
     meta: result.meta,
   });
@@ -55,6 +56,7 @@ export const handleGetAllGear = async (
 
   res.status(200).json({
     success: true,
+    message: "Gear items fetched successfully",
     data: result.data,
     meta: result.meta,
   });
@@ -87,6 +89,7 @@ export const handleGetAllRentals = async (
 
   res.status(200).json({
     success: true,
+    message: "Rental orders fetched successfully",
     data: result.data,
     meta: result.meta,
   });
