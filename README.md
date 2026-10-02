@@ -14,7 +14,7 @@
 GearUp is an enterprise-grade backend API for renting sports and outdoor equipment. It empowers customers to browse available gear, reserve items with serializable concurrency controls, execute secure payments via Stripe, request partial or full refunds with idempotency guarantees, and review returned equipment. Providers manage inventory and orders, while administrators maintain platform governance.
 
 > 🚀 **Live Production API**: [`https://gearup-backend-2.onrender.com`](https://gearup-backend-2.onrender.com)  
-> 📚 **Interactive Swagger API Docs (Live)**: [`https://gearup-backend-2.onrender.com/docs`](https://gearup-backend-2.onrender.com/docs) *(Local: `http://localhost:5000/docs`)*  
+> 📚 **Interactive Swagger API Docs (Live)**: [`https://gearup-backend-2.onrender.com/docs`](https://gearup-backend-2.onrender.com/docs) _(Local: `http://localhost:5000/docs`)_  
 > 📄 **Raw OpenAPI 3.0 Spec (Live)**: [`https://gearup-backend-2.onrender.com/api/docs/openapi.json`](https://gearup-backend-2.onrender.com/api/docs/openapi.json)  
 > 🩺 **Production Health Probe**: [`https://gearup-backend-2.onrender.com/health`](https://gearup-backend-2.onrender.com/health)  
 > 📊 **Online ERD Model**: [DrawSQL Diagram Link](https://drawsql.app/teams/inert-argon/diagrams/gearup)
@@ -42,17 +42,17 @@ GearUp is an enterprise-grade backend API for renting sports and outdoor equipme
 
 ## Tech Stack
 
-| Category | Technology |
-|---|---|
-| **Runtime & Language** | Node.js v24 (ESM), TypeScript 5.8 (Strict Mode) |
-| **Framework** | Express 5.2 |
-| **ORM & Database** | Prisma ORM 7.8, PostgreSQL 16 (Neon Serverless PostgreSQL via `@prisma/adapter-pg`) |
-| **Authentication** | JWT (JSON Web Tokens), Bcrypt password hashing with configurable salt rounds |
-| **Validation** | Zod (strict schema coercion and validation middleware) |
-| **Payment Gateway** | Stripe SDK (PaymentIntents, Webhook Signature Verification, Refunds) |
+| Category                 | Technology                                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Runtime & Language**   | Node.js v24 (ESM), TypeScript 5.8 (Strict Mode)                                                                         |
+| **Framework**            | Express 5.2                                                                                                             |
+| **ORM & Database**       | Prisma ORM 7.8, PostgreSQL 16 (Neon Serverless PostgreSQL via `@prisma/adapter-pg`)                                     |
+| **Authentication**       | JWT (JSON Web Tokens), Bcrypt password hashing with configurable salt rounds                                            |
+| **Validation**           | Zod (strict schema coercion and validation middleware)                                                                  |
+| **Payment Gateway**      | Stripe SDK (PaymentIntents, Webhook Signature Verification, Refunds)                                                    |
 | **Security & Hardening** | OWASP Security Headers, Production CORS Whitelist, Tiered Sliding-Window Rate Limiter, Correlation IDs (`X-Request-Id`) |
-| **Testing** | Node.js Native Test Runner (`node:test`, `node:assert`, `tsx --test`), Native Fetch HTTP Harness |
-| **DevOps & CI/CD** | Multi-stage Docker, Docker Compose, GitHub Actions CI Workflow, Render Blueprint |
+| **Testing**              | Node.js Native Test Runner (`node:test`, `node:assert`, `tsx --test`), Native Fetch HTTP Harness                        |
+| **DevOps & CI/CD**       | Multi-stage Docker, Docker Compose, GitHub Actions CI Workflow, Render Blueprint                                        |
 
 ---
 
@@ -63,7 +63,7 @@ GearUp adheres to a strictly layered, decoupled architecture with unidirectional
 ```mermaid
 flowchart TD
     Client(["HTTP Client (Browser / Mobile / Postman)"])
-    
+
     subgraph Middlewares ["Security & Middleware Pipeline"]
         SecHeaders["Security Headers (OWASP)"]
         CorsMW["Production CORS Whitelist"]
@@ -73,18 +73,18 @@ flowchart TD
         AuthMW["JWT Auth & Role Enforcement"]
         ZodMW["Zod Schema Validation"]
     end
-    
+
     subgraph AppLayer ["Application Controllers & Services"]
         Router["Express Routers (/api/*)"]
         Ctrl["Controllers (HTTP Request / Response)"]
         Svc["Domain Services (Business Invariants)"]
     end
-    
+
     subgraph Integrations ["Integrations & External Side-Effects"]
         StripeGateway["Stripe Gateway (PaymentIntents & Refunds)"]
         Reconcile["Refund Reconciliation Worker"]
     end
-    
+
     subgraph DataLayer ["Data Persistence"]
         Prisma["Prisma ORM (Transactions & Query Engine)"]
         Postgres[(PostgreSQL / Neon DB)]
@@ -241,7 +241,7 @@ sequenceDiagram
 
     Customer->>API: POST /api/rentals (dates, items)
     API->>Service: createRental(customerId, data)
-    
+
     loop Max 3 Retries on P2034 Conflict
         Service->>DB: BEGIN Serializable Transaction
         Service->>DB: Lock & Query Gear Items
@@ -269,17 +269,17 @@ stateDiagram-v2
     [*] --> PLACED: Customer Books Gear
     PLACED --> CONFIRMED: Provider Confirms Order
     PLACED --> CANCELED: Customer Cancels Before Confirmation
-    
+
     CONFIRMED --> PAID: Customer Pays via Stripe
     PAID --> PICKED_UP: Customer Collects Equipment
     PICKED_UP --> RETURNED: Equipment Inspected & Returned
-    
+
     state PaymentState {
         [*] --> PENDING: Idempotency Key Registered
         PENDING --> COMPLETED: Stripe Webhook Verified
         PENDING --> FAILED: Card Declined
     }
-    
+
     state RefundState {
         [*] --> PROCESSING: Idempotent Refund Created
         PROCESSING --> COMPLETED: Stripe Refund Succeeded
@@ -353,74 +353,83 @@ sequenceDiagram
 ## API Reference
 
 ### Authentication (`/api/auth`)
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
+
+| Method | Endpoint             | Access                | Description                         |
+| ------ | -------------------- | --------------------- | ----------------------------------- |
 | `POST` | `/api/auth/register` | Public (Rate Limited) | Register a new CUSTOMER or PROVIDER |
-| `POST` | `/api/auth/login` | Public (Rate Limited) | Authenticate user & receive JWT |
-| `GET` | `/api/auth/me` | Bearer Token | Fetch authenticated user profile |
+| `POST` | `/api/auth/login`    | Public (Rate Limited) | Authenticate user & receive JWT     |
+| `GET`  | `/api/auth/me`       | Bearer Token          | Fetch authenticated user profile    |
 
 ### Categories (`/api/categories`)
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `GET` | `/api/categories` | Public | List categories with active gear count |
-| `GET` | `/api/categories/:id` | Public | Get single category details |
-| `POST` | `/api/categories` | ADMIN | Create new category |
-| `PATCH` | `/api/categories/:id` | ADMIN | Update category name, slug, or description |
-| `DELETE` | `/api/categories/:id` | ADMIN | Delete category (blocked if gear items exist) |
+
+| Method   | Endpoint              | Access | Description                                   |
+| -------- | --------------------- | ------ | --------------------------------------------- |
+| `GET`    | `/api/categories`     | Public | List categories with active gear count        |
+| `GET`    | `/api/categories/:id` | Public | Get single category details                   |
+| `POST`   | `/api/categories`     | ADMIN  | Create new category                           |
+| `PATCH`  | `/api/categories/:id` | ADMIN  | Update category name, slug, or description    |
+| `DELETE` | `/api/categories/:id` | ADMIN  | Delete category (blocked if gear items exist) |
 
 ### Gear Management (`/api/gears`)
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `GET` | `/api/gears` | Public | Paginated gear list with search, category, brand filters |
-| `GET` | `/api/gears/:id` | Public | Gear details with average rating & review count |
-| `POST` | `/api/gears` | PROVIDER | Create gear inventory |
-| `PATCH` | `/api/gears/:id` | PROVIDER | Update gear details (owner only) |
-| `DELETE` | `/api/gears/:id` | PROVIDER | Delete gear (blocked if rental history exists) |
+
+| Method   | Endpoint         | Access   | Description                                              |
+| -------- | ---------------- | -------- | -------------------------------------------------------- |
+| `GET`    | `/api/gears`     | Public   | Paginated gear list with search, category, brand filters |
+| `GET`    | `/api/gears/:id` | Public   | Gear details with average rating & review count          |
+| `POST`   | `/api/gears`     | PROVIDER | Create gear inventory                                    |
+| `PATCH`  | `/api/gears/:id` | PROVIDER | Update gear details (owner only)                         |
+| `DELETE` | `/api/gears/:id` | PROVIDER | Delete gear (blocked if rental history exists)           |
 
 ### Rentals & Bookings (`/api/rentals`)
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `POST` | `/api/rentals` | CUSTOMER | Create rental order with serializable concurrency lock |
-| `GET` | `/api/rentals` | CUSTOMER | List customer rental bookings |
-| `GET` | `/api/rentals/:id` | CUSTOMER | Get rental order details |
-| `PATCH` | `/api/rentals/:id/cancel`| CUSTOMER | Cancel a PLACED rental order |
+
+| Method  | Endpoint                  | Access   | Description                                            |
+| ------- | ------------------------- | -------- | ------------------------------------------------------ |
+| `POST`  | `/api/rentals`            | CUSTOMER | Create rental order with serializable concurrency lock |
+| `GET`   | `/api/rentals`            | CUSTOMER | List customer rental bookings                          |
+| `GET`   | `/api/rentals/:id`        | CUSTOMER | Get rental order details                               |
+| `PATCH` | `/api/rentals/:id/cancel` | CUSTOMER | Cancel a PLACED rental order                           |
 
 ### Provider Orders (`/api/provider/rentals`)
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `GET` | `/api/provider/rentals` | PROVIDER | List orders containing provider's gear |
+
+| Method  | Endpoint                           | Access   | Description                                           |
+| ------- | ---------------------------------- | -------- | ----------------------------------------------------- |
+| `GET`   | `/api/provider/rentals`            | PROVIDER | List orders containing provider's gear                |
 | `PATCH` | `/api/provider/rentals/:id/status` | PROVIDER | Advance status (`CONFIRMED`, `PICKED_UP`, `RETURNED`) |
 
 ### Payments & Refunds (`/api/payments`)
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `POST` | `/api/payments` | CUSTOMER | Initialize Stripe PaymentIntent (`Idempotency-Key` required) |
-| `GET` | `/api/payments` | CUSTOMER | List customer payment history |
-| `GET` | `/api/payments/:id` | CUSTOMER | Get single payment details |
-| `POST` | `/api/payments/refunds` | CUSTOMER | Request partial/full refund (`Idempotency-Key` required) |
-| `POST` | `/api/payments/webhook` | Stripe Webhook | Raw webhook endpoint for Stripe events |
+
+| Method | Endpoint                | Access         | Description                                                  |
+| ------ | ----------------------- | -------------- | ------------------------------------------------------------ |
+| `POST` | `/api/payments`         | CUSTOMER       | Initialize Stripe PaymentIntent (`Idempotency-Key` required) |
+| `GET`  | `/api/payments`         | CUSTOMER       | List customer payment history                                |
+| `GET`  | `/api/payments/:id`     | CUSTOMER       | Get single payment details                                   |
+| `POST` | `/api/payments/refunds` | CUSTOMER       | Request partial/full refund (`Idempotency-Key` required)     |
+| `POST` | `/api/payments/webhook` | Stripe Webhook | Raw webhook endpoint for Stripe events                       |
 
 ### Reviews (`/api/reviews`)
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `POST` | `/api/reviews` | CUSTOMER | Review gear from a RETURNED rental order |
-| `GET` | `/api/reviews/gear/:gearItemId` | Public | Paginated reviews for a gear item |
+
+| Method | Endpoint                        | Access   | Description                              |
+| ------ | ------------------------------- | -------- | ---------------------------------------- |
+| `POST` | `/api/reviews`                  | CUSTOMER | Review gear from a RETURNED rental order |
+| `GET`  | `/api/reviews/gear/:gearItemId` | Public   | Paginated reviews for a gear item        |
 
 ### Admin Platform Management (`/api/admin`)
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `GET` | `/api/admin/users` | ADMIN | List all registered users with pagination |
-| `PATCH` | `/api/admin/users/:id/status` | ADMIN | Update user status (`ACTIVE`, `SUSPENDED`) |
-| `GET` | `/api/admin/gear` | ADMIN | List all gear across all providers |
-| `DELETE` | `/api/admin/gear/:id` | ADMIN | Remove gear (checks active rental locks) |
-| `GET` | `/api/admin/rentals` | ADMIN | List all system rentals with payment audit |
-| `POST` | `/api/admin/refunds/reconcile` | ADMIN | Trigger automated Stripe refund reconciliation |
+
+| Method   | Endpoint                       | Access | Description                                    |
+| -------- | ------------------------------ | ------ | ---------------------------------------------- |
+| `GET`    | `/api/admin/users`             | ADMIN  | List all registered users with pagination      |
+| `PATCH`  | `/api/admin/users/:id/status`  | ADMIN  | Update user status (`ACTIVE`, `SUSPENDED`)     |
+| `GET`    | `/api/admin/gear`              | ADMIN  | List all gear across all providers             |
+| `DELETE` | `/api/admin/gear/:id`          | ADMIN  | Remove gear (checks active rental locks)       |
+| `GET`    | `/api/admin/rentals`           | ADMIN  | List all system rentals with payment audit     |
+| `POST`   | `/api/admin/refunds/reconcile` | ADMIN  | Trigger automated Stripe refund reconciliation |
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js >= 20 (v24 recommended)
 - PostgreSQL >= 15 (or Neon Serverless PostgreSQL)
 - pnpm >= 9
@@ -487,6 +496,7 @@ pnpm test:load
 ```
 
 ### Benchmark Metrics Sample (50 Concurrent Users, 200 Requests)
+
 ```text
 Target URL        : http://localhost:5000
 Concurrent Users  : 25
@@ -547,6 +557,7 @@ chmod +x scripts/db-backup.sh
 Backups are saved to `./backups/gearup_backup_YYYYMMDD_HHMMSS.sql.gz` and files older than 30 days are automatically pruned.
 
 #### Setup Nightly Cron Backup (Linux / macOS)
+
 ```bash
 # Run backup every night at 2:00 AM
 0 2 * * * cd /path/to/GearUp && ./scripts/db-backup.sh >> /var/log/gearup_backup.log 2>&1
