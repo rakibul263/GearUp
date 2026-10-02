@@ -33,10 +33,7 @@ export const createReview = async (
   }
 
   if (rentalOrder.rentalItems.length === 0) {
-    throw new AppError(
-      "This gear was not part of the rental order",
-      400,
-    );
+    throw new AppError("This gear was not part of the rental order", 400);
   }
 
   const existingReview = await prisma.review.findUnique({
