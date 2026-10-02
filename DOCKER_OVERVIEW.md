@@ -1,14 +1,20 @@
 # GearUp API — Sports & Outdoor Equipment Rental Backend
 
+[![Live API](https://img.shields.io/badge/Live_API-Render-46E3B7.svg?style=flat-square&logo=render)](https://gearup-backend-2.onrender.com)
+[![Live Swagger Docs](https://img.shields.io/badge/Live_Docs-Swagger-85EA2D.svg?style=flat-square&logo=swagger)](https://gearup-backend-2.onrender.com/docs)
 [![Docker Pulls](https://img.shields.io/docker/pulls/itzshuvo/gearup-api?style=flat-square&logo=docker)](https://hub.docker.com/r/itzshuvo/gearup-api)
 [![Docker Image Size](https://img.shields.io/docker/image-size/itzshuvo/gearup-api/latest?style=flat-square&logo=docker)](https://hub.docker.com/r/itzshuvo/gearup-api)
 [![Node.js](https://img.shields.io/badge/Node.js-v24-339933.svg?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-v5.8-3178C6.svg?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Prisma ORM](https://img.shields.io/badge/Prisma-v7.8-2D3748.svg?style=flat-square&logo=prisma)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-336791.svg?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
-[![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0.3-85EA2D.svg?style=flat-square&logo=swagger)](http://localhost:5000/docs)
 
 **GearUp** is an enterprise-grade backend REST API for renting sports and outdoor gear. Built with Node.js 24, TypeScript strict mode, Express, Prisma ORM, and PostgreSQL, it features serializable concurrency controls for zero-double-booking, idempotent Stripe payment & refund flows, sliding-window rate limiting, and an interactive OpenAPI 3.0 (Swagger) UI.
+
+> 🚀 **Live Production Deployment**: [`https://gearup-backend-2.onrender.com`](https://gearup-backend-2.onrender.com)  
+> 📚 **Interactive Swagger API Docs (Live)**: [`https://gearup-backend-2.onrender.com/docs`](https://gearup-backend-2.onrender.com/docs)  
+> 📄 **Raw OpenAPI 3.0 JSON**: [`https://gearup-backend-2.onrender.com/api/docs/openapi.json`](https://gearup-backend-2.onrender.com/api/docs/openapi.json)  
+> 🩺 **Live Health Probe**: [`https://gearup-backend-2.onrender.com/health`](https://gearup-backend-2.onrender.com/health)
 
 ---
 
@@ -113,7 +119,7 @@ Once running, verify the service:
 | `JWT_SECRET` | **Yes** | — | Cryptographic secret key for signing JWTs (min 32 characters) |
 | `JWT_EXPIRES_IN` | Optional | `7d` | Token expiry duration (e.g. `1d`, `7d`) |
 | `SALT_ROUNDS` | Optional | `10` | Salt rounds for bcrypt password hashing |
-| `APP_BASE_URL` | Optional | `http://localhost:5000` | Base public URL of the API |
+| `APP_BASE_URL` | Optional | `https://gearup-backend-2.onrender.com` | Base public URL of the API (`http://localhost:5000` for local dev) |
 | `STRIPE_SECRET_KEY` | Optional | — | Stripe Secret API key for payment processing |
 | `STRIPE_WEBHOOK_SECRET` | Optional | — | Secret key for verifying inbound Stripe webhooks |
 | `CORS_ORIGIN` | Optional | `*` | Allowed CORS origins (comma-separated for multiple domains) |

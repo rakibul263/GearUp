@@ -27,7 +27,7 @@ services:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
       - key: APP_BASE_URL
-        sync: false
+        value: https://gearup-backend-2.onrender.com
 
 databases:
   - name: gearup-db

@@ -16,6 +16,10 @@ export const openApiSpec = {
   },
   servers: [
     {
+      url: "https://gearup-backend-2.onrender.com",
+      description: "Live Production Server (Render)",
+    },
+    {
       url: "http://localhost:5000",
       description: "Local Development Server",
     },

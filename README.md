@@ -1,18 +1,22 @@
 # GearUp — Rent Sports & Outdoor Gear Instantly
 
+[![Live API](https://img.shields.io/badge/Live_API-Render-46E3B7.svg?style=for-the-badge&logo=render)](https://gearup-backend-2.onrender.com)
+[![Live Swagger Docs](https://img.shields.io/badge/Live_Docs-Swagger-85EA2D.svg?style=for-the-badge&logo=swagger)](https://gearup-backend-2.onrender.com/docs)
+[![Docker](https://img.shields.io/badge/Docker_Hub-itzshuvo%2Fgearup--api-2496ED.svg?style=for-the-badge&logo=docker)](https://hub.docker.com/r/itzshuvo/gearup-api)
 [![Node.js](https://img.shields.io/badge/Node.js-v24-green.svg?style=for-the-badge&logo=node.js)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-v5.8-blue.svg?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Express.js](https://img.shields.io/badge/Express.js-v5.2-black.svg?style=for-the-badge&logo=express)](https://expressjs.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-v7.8-2D3748.svg?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-336791.svg?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg?style=for-the-badge&logo=docker)](https://www.docker.com/)
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF.svg?style=for-the-badge&logo=githubactions)](https://github.com/)
 [![Tests](https://img.shields.io/badge/Tests-35%20Passed-brightgreen.svg?style=for-the-badge)]()
-[![Swagger](https://img.shields.io/badge/OpenAPI-3.0.3-85EA2D.svg?style=for-the-badge&logo=swagger)](http://localhost:5000/docs)
 
 GearUp is an enterprise-grade backend API for renting sports and outdoor equipment. It empowers customers to browse available gear, reserve items with serializable concurrency controls, execute secure payments via Stripe, request partial or full refunds with idempotency guarantees, and review returned equipment. Providers manage inventory and orders, while administrators maintain platform governance.
 
-> 📚 **Interactive Swagger API Docs**: Explore and execute API endpoints directly in your browser at [`http://localhost:5000/docs`](http://localhost:5000/docs) (or inspect the raw schema at [`/api/docs/openapi.json`](http://localhost:5000/api/docs/openapi.json)).  
+> 🚀 **Live Production API**: [`https://gearup-backend-2.onrender.com`](https://gearup-backend-2.onrender.com)  
+> 📚 **Interactive Swagger API Docs (Live)**: [`https://gearup-backend-2.onrender.com/docs`](https://gearup-backend-2.onrender.com/docs) *(Local: `http://localhost:5000/docs`)*  
+> 📄 **Raw OpenAPI 3.0 Spec (Live)**: [`https://gearup-backend-2.onrender.com/api/docs/openapi.json`](https://gearup-backend-2.onrender.com/api/docs/openapi.json)  
+> 🩺 **Production Health Probe**: [`https://gearup-backend-2.onrender.com/health`](https://gearup-backend-2.onrender.com/health)  
 > 📊 **Online ERD Model**: [DrawSQL Diagram Link](https://drawsql.app/teams/inert-argon/diagrams/gearup)
 
 ---
@@ -459,8 +463,8 @@ pnpm prisma:generate
 pnpm dev
 ```
 
-Server will run at `http://localhost:5000`.  
-Open `http://localhost:5000/docs` in your browser for the interactive Swagger documentation.
+Local server will run at `http://localhost:5000` (Local Swagger: `http://localhost:5000/docs`).  
+Live Production Server: [`https://gearup-backend-2.onrender.com`](https://gearup-backend-2.onrender.com) (Live Swagger: [`https://gearup-backend-2.onrender.com/docs`](https://gearup-backend-2.onrender.com/docs)).
 
 ---
 
